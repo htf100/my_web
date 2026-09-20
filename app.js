@@ -120,7 +120,21 @@
     }
     add(null, nav); $('#category-count').textContent = library.categories.length;
   }
+  const copyTimers = new WeakMap();
+  function setCopyState(copyButton, copied) {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('focusable', 'false');
+    const path = document.createElementNS(svg.namespaceURI, 'path');
+    path.setAttribute('d', copied ? 'm5 12 4 4L19 6' : 'M9 9h11v11H9z M15 5V3H3v12h2');
+    svg.append(path); copyButton.replaceChildren(svg);
+    copyButton.classList.toggle('copied', copied);
+    copyButton.title = copied ? '已复制' : '复制命令';
+  }
   async function copyCommand(command, code, copyButton) {
+    clearTimeout(copyTimers.get(copyButton));
+    setCopyState(copyButton, false);
     let copied = false;
     try { if (navigator.clipboard && isSecureContext) { await navigator.clipboard.writeText(command.code); copied = true; } } catch { /* fall back */ }
     if (!copied) {
@@ -132,8 +146,8 @@
       const range = document.createRange(); range.selectNodeContents(code); const selection = getSelection(); selection.removeAllRanges(); selection.addRange(range);
       return notify('内容已选中，请按 Ctrl+C 或 ⌘C 复制。');
     }
-    copyButton.textContent = '已复制'; copyButton.classList.add('copied'); notify(`已复制：${command.title}`);
-    setTimeout(() => { copyButton.textContent = '复制'; copyButton.classList.remove('copied'); }, 1600);
+    setCopyState(copyButton, true); notify(`已复制：${command.title}`);
+    copyTimers.set(copyButton, setTimeout(() => { setCopyState(copyButton, false); copyTimers.delete(copyButton); }, 2000));
   }
   function card(command) {
     const article = el('article', 'card'); article.dataset.command = command.id; article.dataset.dropCategory = command.category; article.dataset.before = command.id;
@@ -151,7 +165,7 @@
     if (command.code) {
       const area = el('div', 'code-area'), toolbar = el('div', 'code-toolbar');
       const pre = el('pre'), code = el('code', '', command.code); pre.tabIndex = 0; pre.append(code);
-      const copy = button('复制', () => copyCommand(command, code, copy), 'copy'); copy.setAttribute('aria-label', `复制：${command.title}`);
+      const copy = button('', () => copyCommand(command, code, copy), 'copy'); copy.setAttribute('aria-label', `复制：${command.title}`); setCopyState(copy, false);
       toolbar.append(el('span', '', command.language === '快捷键' ? '按键顺序' : '命令片段'), copy); area.append(toolbar, pre); article.append(area);
     }
     if (command.note) article.append(el('p', command.warning ? 'note warning' : 'note', command.note));
