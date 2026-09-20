@@ -10,6 +10,34 @@
 - **搜索与筛选**：搜索会匹配名称、代码、备注以及完整分类路径，并与运行环境筛选共同生效。搜索范围为各栏选择的分类。按 `/` 聚焦搜索，`Esc` 清空搜索。
 - **一键复制**：保持命令原始内容和换行。浏览器阻止复制时会尝试兼容方式，最后提供选中内容手动复制。网页不会运行命令。
 
+## 顶部国际热点
+
+页面最上方是一条可点击的滚动新闻栏。标题在新标签页打开媒体原文，保留来源标识和发布时间；不转载正文。默认最多 12 条，以中文为主，按最近发布时间排序，不是热度评分榜。
+
+新闻来源：
+
+- [BBC 中文 RSS](https://feeds.bbci.co.uk/zhongwen/simp/rss.xml)：最多 5 条。
+- [德国之声中文 RSS](https://rss.dw.com/rdf/rss-chi-all)：最多 5 条。
+- [BBC World RSS](https://feeds.bbci.co.uk/news/world/rss.xml)：最多 2 条。
+
+鼠标悬停或点击“暂停”可停止滚动；“新闻列表”提供完整标题、发布时间和来源链接，也方便键盘访问。在系统开启“减少动态效果”时自动改为静态横向浏览。
+
+GitHub Actions 在每小时第 17 分钟计划抓取，并重新部署；GitHub 高负载时可能延迟。浏览器每 5 分钟检查同站 `news.json`，不直接跨域请求媒体，不需要 API Key 或第三方 RSS 代理。网站新闻数据更新不会修改你的浏览器命令库。
+
+抓取支持 RSS 2.0 和 RDF RSS，限制响应大小，拒绝 XML 实体、非媒体链接、超过 7 天或明显未来的文章，并去重。单个来源故障仍显示其他来源；全部失败时优先沿用已上线的快照，保留真实抓取时间。超过 3 小时未更新或新闻本身较旧时会显示提示，不伪装成实时新闻。
+
+GitHub 对公开仓库连续 60 天无活动可能停用定时任务。如果栏上持续提示“更新延迟”，到仓库 Actions 重新启用工作流并运行一次。定时任务只发布产物，不生成每小时 Git 提交。[GitHub 定时任务说明](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule)
+
+本地手动刷新新闻快照：
+
+```bash
+python3 scripts/update_news.py
+```
+
+仅依赖 Python 标准库。`news-data.js` 是供直接打开本地文件时使用的快照，`news.json` 供已打开的网页检查更新。自动部署生成的新快照在发布产物内，不反向改动仓库中的初始快照。
+
+实现参考：[CSS 动画暂停](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/animation-play-state)、[减少动态效果](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@media/prefers-reduced-motion)。
+
 ## 设置密令并编辑
 
 1. 第一次点击右上角“设置密令”，输入两遍自己的密令（至少 6 位）。
@@ -45,16 +73,16 @@ python3 -m http.server 8080 --bind 127.0.0.1
 
 仓库：<https://github.com/htf100/my_web>
 
-网站地址（首次部署成功后可访问）：<https://htf100.github.io/my_web/>
+网站地址：<https://htf100.github.io/my_web/>
 
-仓库包含 `.github/workflows/pages.yml`。向 `main` 分支推送后，GitHub Actions 会检查 JavaScript、运行数据层测试，并只发布网站所需的 6 个静态文件。原始笔记、旧版备份、截图和 ZIP 留在本地，不提交也不发布。
+仓库包含 `.github/workflows/pages.yml`。向 `main` 分支推送后，GitHub Actions 会检查 JavaScript、运行数据层测试，抓取最新 RSS 新闻，并只发布网站所需的静态文件。原始笔记、旧版备份、截图和 ZIP 留在本地，不提交也不发布。
 
 仓库 **Settings → Pages → Build and deployment → Source** 应设为 **GitHub Actions**。可在仓库 Actions 页面查看部署进度或手动运行部署流程。
 
 后续修改网页代码后，在项目目录执行：
 
 ```bash
-git add index.html styles.css app.js model.js commands.js README.md .github tests
+git add index.html styles.css app.js model.js commands.js news.js news-data.js news.json scripts README.md .github tests
 git commit -m "Update command desk"
 git push origin main
 ```
