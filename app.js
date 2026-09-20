@@ -40,6 +40,11 @@
     writable = false;
     notice('无法读取或写入本地存储。当前只读，原有存储未覆盖；请检查浏览器存储权限，或从 JSON 备份恢复。');
   }
+  // Upgrade untouched project snippets in memory; preserve custom code and the storage lock.
+  for (const command of library.commands) {
+    const preset = projectPack.commands.find(item => item.id === command.id);
+    if (preset && command.code.includes('python3') && command.code.replace(/\bpython3\b/g, 'python') === preset.code) command.code = preset.code;
+  }
   try {
     const saved = JSON.parse(localStorage.getItem(VIEW_KEY));
     if (saved && [1, 2, 3, 4].includes(saved.count) && Array.isArray(saved.panels)) {
