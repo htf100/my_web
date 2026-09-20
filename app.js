@@ -7,6 +7,10 @@
   const clone = value => JSON.parse(JSON.stringify(value));
   const uid = () => 'id-' + crypto.randomUUID();
   let library = M.validate(window.COMMAND_LIBRARY);
+  const projectPack = M.validate({
+    categories: library.categories.filter(c => c.id.startsWith('htf-')),
+    commands: library.commands.filter(c => c.id.startsWith('htf-')),
+  });
   let record = null, snapshot = null, unlocked = false, writable = true;
   let history = [], active = 0, toastTimer, onSubmit, draggingId = null;
   let view = { count: 3, panels: ['server-root', 'colab-root', 'troubleshoot-root', 'all'], collapsed: [] };
@@ -241,6 +245,9 @@
     $('#lock').hidden = !unlocked; $('#change-passphrase').hidden = !unlocked;
     $('#lock-status').textContent = unlocked ? '编辑已解锁' : '只读模式'; $('#lock-status').classList.toggle('unlocked', unlocked);
     $('#undo').hidden = !unlocked || !history.length;
+    const missing = projectPack.commands.filter(c => !library.commands.some(existing => existing.id === c.id)).length;
+    $('#add-project-commands').hidden = !missing;
+    $('#add-project-commands').textContent = `补充项目命令 · ${missing}`;
     $('#save-status').textContent = record?.updatedAt ? `已保存到此浏览器 · ${new Date(record.updatedAt).toLocaleString('zh-CN')}` : '初始命令库 · 设置密令后可本地编辑';
     document.querySelectorAll('[data-count]').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.count) === view.count)));
     renderNav(); renderBoard();
@@ -395,6 +402,15 @@
   $('#change-passphrase').addEventListener('click', () => openUnlock(true));
   $('#lock').addEventListener('click', () => { unlocked = false; history = []; render(); notify('编辑已锁定，仍可浏览和复制。'); });
   $('#add-command').addEventListener('click', () => openCommand());
+  $('#add-project-commands').addEventListener('click', () => requireEdit(() => {
+    const count = projectPack.commands.filter(c => !library.commands.some(existing => existing.id === c.id)).length;
+    const body = showDialog('补充 HTF 项目命令', `添加 ${count} 条`, () => {
+      commit(draft => Object.assign(draft, M.mergeMissing(draft, projectPack)), `已补充 ${count} 条项目命令，可撤销`);
+      view.panels[active] = 'htf-projects'; saveView(); renderBoard();
+    });
+    body.append(el('p', 'dialog-help', `将添加缺少的 ${count} 条命令，涵盖 Python 环境、图像测量、数据清洗与训练、资源备份及网站维护。保留你已有的命令、编辑和分类，不恢复此前删除的旧版预置命令。`));
+    body.append(el('p', 'dialog-help', '命令中的 /path/to/ 是待替换路径。这里只加入命令库，不会安装依赖、运行算法或启动训练。'));
+  }));
   $('#manage-categories').addEventListener('click', manageCategories);
   $('#undo').addEventListener('click', () => run(() => { checkEdit(); const previous = history.at(-1); if (!previous) return; write(previous); history.pop(); render(); notify('已撤销上次修改。'); }));
   $('#column-count').addEventListener('click', event => { const b = event.target.closest('[data-count]'); if (b) { view.count = Number(b.dataset.count); active = Math.min(active, view.count - 1); saveView(); render(); } });

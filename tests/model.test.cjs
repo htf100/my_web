@@ -4,7 +4,7 @@ const fs=require('node:fs'),vm=require('node:vm');
 const M=require('../model.js');
 const ctx={window:{}};vm.runInNewContext(fs.readFileSync(require.resolve('../commands.js'),'utf8'),ctx);
 const seed=()=>M.validate(ctx.window.COMMAND_LIBRARY);
-test('preserves every source command across hierarchical categories',()=>{const l=seed();assert.equal(l.commands.length,45);assert.equal(l.categories.length,25);assert.equal(M.ordered(l).length,25);assert.equal(M.descendants(l,'server-root').size,7);assert.equal(M.path(l,'mosh'),'服务器 / 连接与环境 / Mosh 远程连接');});
+test('preserves every source command across hierarchical categories',()=>{const l=seed();assert.equal(l.commands.length,79);assert.equal(l.categories.length,35);assert.equal(M.ordered(l).length,35);assert.equal(M.descendants(l,'server-root').size,7);assert.equal(M.path(l,'mosh'),'服务器 / 连接与环境 / Mosh 远程连接');});
 test('rejects cycles, excessive depth, duplicates, and orphan commands',()=>{
  let l=seed();l.categories[0].parent='mosh';assert.throws(()=>M.validate(l),/自身/);
  l=seed();l.categories.push({...l.categories[0]});assert.throws(()=>M.validate(l),/重复/);
@@ -14,5 +14,14 @@ test('rejects cycles, excessive depth, duplicates, and orphan commands',()=>{
 test('moves commands across categories and preserves exact multiline content',()=>{
  const l=seed(),a=l.commands[0],b=l.commands[1];const content=a.code;
  M.move(l,a.id,b.category,b.id);assert.equal(l.commands.find(c=>c.id===a.id).category,b.category);assert.equal(l.commands.findIndex(c=>c.id===a.id)+1,l.commands.findIndex(c=>c.id===b.id));assert.equal(l.commands.find(c=>c.id===a.id).code,content);assert.doesNotThrow(()=>M.validate(l));
- M.move(l,a.id,b.category);assert.equal(l.commands.at(-1).id,a.id);assert.equal(l.commands.length,45);
+ M.move(l,a.id,b.category);assert.equal(l.commands.at(-1).id,a.id);assert.equal(l.commands.length,79);
+});
+
+test('merges only missing project entries without overwriting edits or restoring deleted old commands',()=>{
+ const all=seed(),pack={categories:all.categories.filter(c=>c.id.startsWith('htf-')),commands:all.commands.filter(c=>c.id.startsWith('htf-'))};
+ const old={categories:all.categories.filter(c=>!c.id.startsWith('htf-')),commands:all.commands.filter(c=>!c.id.startsWith('htf-')&&c.id!=='connect-02')};
+ old.commands[0].code='my custom command';const before=JSON.stringify(old);
+ const merged=M.mergeMissing(old,pack);assert.equal(merged.commands.length,78);assert.equal(merged.commands.find(c=>c.id==='connect-01').code,'my custom command');assert.equal(merged.commands.some(c=>c.id==='connect-02'),false);assert.equal(JSON.stringify(old),before);
+ merged.commands.find(c=>c.id==='htf-env-01').code='customized project command';merged.categories.find(c=>c.id==='htf-env').label='my environment';
+ assert.deepEqual(M.mergeMissing(merged,pack),merged);
 });

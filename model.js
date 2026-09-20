@@ -67,7 +67,16 @@
     if (index >= 0) library.commands.splice(index, 0, command);
     else library.commands.push(command);
   }
-  const api = { validate, descendants, path, ordered, move, MAX_DEPTH };
+  function mergeMissing(library, additions) {
+    const current = validate(library), pack = validate(additions);
+    const categories = new Set(current.categories.map(c => c.id));
+    const commands = new Set(current.commands.map(c => c.id));
+    return validate({
+      categories: [...current.categories, ...pack.categories.filter(c => !categories.has(c.id))],
+      commands: [...current.commands, ...pack.commands.filter(c => !commands.has(c.id))],
+    });
+  }
+  const api = { validate, descendants, path, ordered, move, mergeMissing, MAX_DEPTH };
   if (typeof module !== 'undefined') module.exports = api;
   else root.CommandModel = api;
 })(typeof window !== 'undefined' ? window : globalThis);
