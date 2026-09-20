@@ -177,7 +177,7 @@
       const area = el('div', 'code-area'), toolbar = el('div', 'code-toolbar');
       const pre = el('pre'), code = el('code', '', command.code); pre.tabIndex = 0; pre.append(code);
       const copy = button('', () => copyCommand(command, code, copy), 'copy'); copy.setAttribute('aria-label', `复制：${command.title}`); setCopyState(copy, false);
-      toolbar.append(el('span', '', command.language === '快捷键' ? '按键顺序' : '命令片段'), copy); area.append(toolbar, pre); article.append(area);
+      toolbar.append(copy); area.append(toolbar, pre); article.append(area);
     }
     if (command.note) article.append(el('p', command.warning ? 'note warning' : 'note', command.note));
     if (unlocked) {
