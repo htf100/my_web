@@ -1,0 +1,18 @@
+# Local source notes and previous versions
+/backups/
+/colab_common_commands.md
+/服务器.txt
+
+# Generated previews, deployment archives and site artifacts
+/preview-*.png
+/github-pages-site.zip
+/_site/
+/.sites-runtime/
+
+# Dependencies, editor state and private configuration
+/node_modules/
+.env
+.env.*
+!.env.example
+.DS_Store
+*.log

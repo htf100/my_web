@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111c30">
+  <meta name="description" content="可分栏的个人命令工作台，多级分类、一键复制和本地编辑。">
+  <title>命令工作台 · HTF</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23111c30'/%3E%3Cpath d='m15 20 12 12-12 12m19 0h15' fill='none' stroke='%235ad4bd' stroke-width='5'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./commands.js" defer></script>
+  <script src="./model.js" defer></script>
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">跳到工作台</a>
+  <aside class="sidebar">
+    <a class="brand" href="./"><span class="brand-icon" aria-hidden="true">&gt;_</span><span>命令工作台<small>HTF / COMMAND DESK</small></span></a>
+    <button id="mobile-menu" class="mobile-menu" type="button" aria-expanded="false" aria-controls="categories">分类 ☰</button>
+    <div class="nav-label">分类目录 <span id="category-count"></span></div>
+    <p class="nav-hint">点击分类，显示在当前栏</p>
+    <nav id="categories" aria-label="多级分类"></nav>
+    <div class="sidebar-bottom"><button id="manage-categories" type="button">管理分类</button><p>保存在当前浏览器<br>导出备份，随时带走。</p></div>
+  </aside>
+  <main id="main">
+    <header class="topbar"><div><span class="eyebrow">MY WORKSPACE</span><h1>我的命令工作台</h1></div><div class="top-actions"><span id="lock-status">只读模式</span><button id="unlock" class="primary" type="button">设置密令</button><button id="lock" type="button" hidden>锁定</button></div></header>
+    <div class="workspace">
+      <div class="toolbar"><div class="search-wrap"><span aria-hidden="true">⌕</span><label class="sr-only" for="search">搜索名称、命令或备注</label><input id="search" type="search" placeholder="搜索名称、命令、备注…" autocomplete="off"><kbd>/</kbd></div><label class="env-label"><span class="sr-only">运行环境</span><select id="environment"><option value="all">全部环境</option><option value="server">服务器 / Windows</option><option value="colab">Google Colab</option><option value="other">其他环境</option></select></label><button id="add-command" class="primary" type="button">＋ 添加命令</button></div>
+      <div class="workspace-controls"><div class="layout-controls"><span>布局</span><div id="column-count" class="segmented" role="group" aria-label="工作台栏数"><button data-count="1" type="button">1 栏</button><button data-count="2" type="button">2 栏</button><button data-count="3" type="button">3 栏</button><button data-count="4" type="button">4 栏</button></div><span id="result-count" aria-live="polite"></span></div><div class="data-actions"><button id="undo" type="button" hidden>撤销上次修改</button><button id="export" type="button">导出备份</button><button id="import" type="button">导入</button><button id="change-passphrase" type="button" hidden>修改密令</button></div></div>
+      <div id="notice" class="notice" role="status" hidden></div>
+      <div id="edit-hint" class="edit-hint">每栏可独立选择分类。解锁后可以拖动命令，或用“移动”按钮调整分类与顺序。</div>
+      <div id="board" class="board" aria-label="分栏命令工作台"></div>
+      <footer><span id="save-status">本地命令库</span><span>只复制，不执行。密令是编辑操作锁，不加密命令内容。</span></footer>
+    </div>
+  </main>
+  <dialog id="modal" aria-labelledby="dialog-title"><form id="dialog-form"><div class="dialog-header"><h2 id="dialog-title"></h2><button id="dialog-close" type="button" aria-label="关闭弹窗">×</button></div><div id="dialog-body"></div><p id="dialog-error" role="alert" hidden></p><div class="dialog-footer"><button id="dialog-cancel" type="button">取消</button><button id="dialog-submit" class="primary" type="submit">保存</button></div></form></dialog>
+  <input id="import-file" type="file" accept="application/json,.json" hidden>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <noscript>请启用 JavaScript，以查看、搜索和复制命令。</noscript>
+</body>
+</html>
