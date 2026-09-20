@@ -8,4 +8,7 @@
 .copy:hover{background:#e7edf7;border-color:transparent}
 .copy svg{display:block;width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .copy.copied,.copy.copied:hover{color:#147d68;background:#e6f6ef;border-color:transparent}
+.copy-check{display:block;font-family:Arial,sans-serif;font-size:23px;font-weight:700;line-height:1}
+.news-refresh-status{position:absolute;top:calc(100% - 5px);right:22px;max-width:calc(100% - 32px);font-size:.75rem;color:#43658d;text-shadow:0 1px 2px #fff,0 0 5px #fff}
+@media(max-width:760px){.news-label>span{display:none}.news-refresh-status{right:14px}.news-controls #news-refresh{min-width:40px}}
 @media(pointer:coarse){.copy{width:40px;height:40px}}

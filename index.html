@@ -7,19 +7,20 @@
   <meta name="description" content="可分栏的个人命令工作台，多级分类、一键复制和本地编辑。">
   <title>命令工作台 · HTF</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23111c30'/%3E%3Cpath d='m15 20 12 12-12 12m19 0h15' fill='none' stroke='%235ad4bd' stroke-width='5'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./styles.css?v=copy-news-2">
   <script src="./commands.js" defer></script>
   <script src="./model.js" defer></script>
-  <script src="./app.js" defer></script>
+  <script src="./app.js?v=copy-news-2" defer></script>
   <script src="./news-data.js" defer></script>
-  <script src="./news.js" defer></script>
+  <script src="./news.js?v=copy-news-2" defer></script>
 </head>
 <body>
   <a class="skip" href="#main">跳到工作台</a>
   <section id="news-strip" class="news-strip" aria-label="国际热点新闻">
     <div class="news-label"><strong>◎ 国际热点</strong><span id="news-updated">正在读取新闻</span></div>
     <div id="news-viewport" class="news-viewport" aria-hidden="true"><div id="news-track" class="news-track"></div></div>
-    <div class="news-controls"><button id="news-pause" type="button" aria-pressed="false" aria-label="暂停新闻滚动">暂停</button><button id="news-list-open" type="button" aria-haspopup="dialog">新闻列表 ↗</button></div>
+    <div class="news-controls"><button id="news-refresh" type="button" title="读取网站最新新闻；来源每小时更新" aria-label="刷新热点新闻">刷新</button><button id="news-pause" type="button" aria-pressed="false" aria-label="暂停新闻滚动">暂停</button><button id="news-list-open" type="button" aria-haspopup="dialog">新闻列表 ↗</button></div>
+    <span id="news-refresh-status" class="news-refresh-status" role="status" aria-live="polite"></span>
   </section>
   <aside class="sidebar">
     <a class="brand" href="./"><span class="brand-icon" aria-hidden="true">&gt;_</span><span>命令工作台<small>HTF / COMMAND DESK</small></span></a>

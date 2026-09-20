@@ -122,15 +122,22 @@
   }
   const copyTimers = new WeakMap();
   function setCopyState(copyButton, copied) {
+    if (copied) {
+      const check = el('span', 'copy-check', '✓'); check.setAttribute('aria-hidden', 'true');
+      copyButton.replaceChildren(check);
+      copyButton.classList.add('copied'); copyButton.title = '已复制';
+      return;
+    }
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('width', '18'); svg.setAttribute('height', '18');
     svg.setAttribute('aria-hidden', 'true');
     svg.setAttribute('focusable', 'false');
     const path = document.createElementNS(svg.namespaceURI, 'path');
-    path.setAttribute('d', copied ? 'm5 12 4 4L19 6' : 'M9 9h11v11H9z M15 5V3H3v12h2');
+    path.setAttribute('d', 'M9 9h11v11H9z M15 5V3H3v12h2');
     svg.append(path); copyButton.replaceChildren(svg);
-    copyButton.classList.toggle('copied', copied);
-    copyButton.title = copied ? '已复制' : '复制命令';
+    copyButton.classList.remove('copied');
+    copyButton.title = '复制命令';
   }
   async function copyCommand(command, code, copyButton) {
     clearTimeout(copyTimers.get(copyButton));

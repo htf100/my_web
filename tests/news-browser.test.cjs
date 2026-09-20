@@ -21,8 +21,10 @@ const root=path.resolve(__dirname,'..');
   await page.setViewportSize({width:320,height:740});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await page.screenshot({path:path.join(root,'preview-news-mobile.png')});
   await page.emulateMedia({reducedMotion:'no-preference'});await page.setViewportSize({width:1440,height:1000});await page.screenshot({path:path.join(root,'preview-news-desktop.png')});
   const old=JSON.parse(fs.readFileSync(path.join(root,'news.json')));old.fetchedAt='2026-01-01T00:00:00Z';old.items=old.items.slice(0,1);old.items.push({...old.items[0],url:'javascript:alert(1)'});old.items[0].title='<img src=x onerror=alert(1)> test';old.status='cached';
+  await page.evaluate(()=>localStorage.removeItem('htf-news-last-good-v1'));
   await page.route('**/news-data.js',r=>r.fulfill({contentType:'text/javascript',body:'window.NEWS_FEED='+JSON.stringify(old)}));await page.route('**/news.json',r=>r.fulfill({status:503,body:'unavailable'}));await page.reload({waitUntil:'networkidle'});
   assert.equal(await page.locator('#news-list li').count(),1);assert.equal(await page.locator('#news-list img').count(),0);assert.match(await page.locator('#news-updated').innerText(),/更新延迟|较早新闻/);assert.equal(await page.locator('.card').count(),45);
+  await page.evaluate(()=>localStorage.removeItem('htf-news-last-good-v1'));
   await page.route('**/news-data.js',r=>r.fulfill({contentType:'text/javascript',body:'window.NEWS_FEED=null'}));await page.reload({waitUntil:'networkidle'});assert.match(await page.locator('#news-updated').innerText(),/暂未获取/);assert.equal(await page.locator('.card').count(),45);assert.deepEqual(errors,[]);
   console.log('PASS: animated ticker, pause/resume/hover/preference, article new tab, reduced motion, mobile width, safe text/URLs, stale and offline fallbacks, existing desk intact.');
  }finally{await browser.close();server.close()}

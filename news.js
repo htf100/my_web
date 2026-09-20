@@ -2,6 +2,8 @@
   'use strict';
   const $ = selector => document.querySelector(selector);
   const strip = $('#news-strip'), track = $('#news-track');
+  const CACHE_KEY = 'htf-news-last-good-v1';
+  const refreshButton = $('#news-refresh');
   const preference = matchMedia('(prefers-reduced-motion: reduce)');
   const sourceNames = { 'bbc-zh': 'BBC 中文', 'dw-zh': '德国之声中文', 'bbc-world': 'BBC World' };
   const sources = [
@@ -10,6 +12,7 @@
     ['BBC World', 'https://www.bbc.com/news/world'],
   ];
   let feed = null, manualPause = false, refreshing = false, refreshFailed = false;
+  let refreshMessageTimer;
   try { manualPause = localStorage.getItem('htf-news-paused') === 'true'; } catch { /* Optional preference. */ }
   function node(tag, className, text) {
     const element = document.createElement(tag);
@@ -32,9 +35,9 @@
       if (!item || typeof item.title !== 'string' || !item.title.trim() || item.title.length > 350 || !Object.hasOwn(sourceNames, item.sourceId)) continue;
       const url = safeURL(item.url);
       if (!url || seen.has(url) || !Number.isFinite(Date.parse(item.publishedAt))) continue;
-      seen.add(url); items.push({ title: item.title, url, source: sourceNames[item.sourceId], publishedAt: item.publishedAt });
+      seen.add(url); items.push({ title: item.title, url, sourceId: item.sourceId, source: sourceNames[item.sourceId], publishedAt: item.publishedAt });
     }
-    return { fetchedAt: raw.fetchedAt, status: raw.status, items: items.slice(0, 12) };
+    return { version: 1, fetchedAt: raw.fetchedAt, status: raw.status, items: items.slice(0, 12) };
   }
   function dateLabel(value) {
     return new Date(value).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
@@ -92,29 +95,55 @@
     }
     updateStatus(); updatePause();
   }
-  async function refresh() {
-    if (refreshing || location.protocol === 'file:' || document.hidden) return;
+  function remember() {
+    if (!feed?.items.length) return;
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify(feed)); } catch { /* Keep the visible news even when storage is unavailable. */ }
+  }
+  function accept(next) {
+    if (!next?.items.length || (feed?.items.length && Date.parse(next.fetchedAt) < Date.parse(feed.fetchedAt))) return false;
+    // A changed fetch timestamp or missing articles alone must not erase old headlines.
+    const changed = !feed?.items.length || next.items.some(item => !feed.items.some(old => old.url === item.url && old.title === item.title && old.publishedAt === item.publishedAt));
+    if (!changed) return false;
+    if (next.status === 'partial' && feed?.items.length) {
+      const updatedSources = new Set(next.items.map(item => item.sourceId));
+      const retained = feed.items.filter(item => !updatedSources.has(item.sourceId));
+      next = { ...next, items: [...next.items, ...retained].sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt)).slice(0, 12) };
+    }
+    render(next); remember(); return true;
+  }
+  function refreshMessage(text) {
+    clearTimeout(refreshMessageTimer);
+    $('#news-refresh-status').textContent = text;
+    refreshMessageTimer = setTimeout(() => { $('#news-refresh-status').textContent = ''; }, 6000);
+  }
+  async function refresh(manual = false) {
+    if (refreshing || document.hidden) return;
+    if (location.protocol === 'file:') {
+      if (manual) refreshMessage('请在网站上刷新；当前新闻已保留');
+      return;
+    }
     refreshing = true;
+    refreshButton.disabled = true; refreshButton.textContent = '刷新中'; refreshButton.setAttribute('aria-busy', 'true');
+    if (manual) { clearTimeout(refreshMessageTimer); $('#news-refresh-status').textContent = '正在获取，当前新闻继续显示…'; }
     const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 8000);
     try {
       const response = await fetch('./news.json', { cache: 'no-store', signal: controller.signal });
       if (!response.ok) throw new Error('news snapshot unavailable');
       const next = validate(await response.json());
-      if (!next) throw new Error('invalid news snapshot');
+      if (!next?.items.length) throw new Error('invalid or empty news snapshot');
       refreshFailed = false;
-      if (!feed || Date.parse(next.fetchedAt) >= Date.parse(feed.fetchedAt)) {
-        // Do not replace a populated snapshot with an unavailable/empty response.
-        if (next.items.length || !feed?.items.length) {
-          if (JSON.stringify(next) !== JSON.stringify(feed)) render(next);
-        }
-      }
+      const changed = accept(next);
       updateStatus();
+      if (manual) refreshMessage(changed ? '已更新热点新闻' : '暂无新新闻，继续显示当前内容');
     } catch {
       refreshFailed = true; updateStatus();
+      if (manual) refreshMessage(feed?.items.length ? '刷新失败，已保留当前新闻' : '刷新失败，请稍后重试');
     } finally {
       clearTimeout(timeout); refreshing = false;
+      refreshButton.disabled = false; refreshButton.textContent = '刷新'; refreshButton.setAttribute('aria-busy', 'false');
     }
   }
+  refreshButton.addEventListener('click', () => refresh(true));
   $('#news-pause').addEventListener('click', () => {
     manualPause = !manualPause;
     try { localStorage.setItem('htf-news-paused', String(manualPause)); } catch { /* Keep in memory. */ }
@@ -128,7 +157,12 @@
   preference.addEventListener('change', updatePause);
   document.addEventListener('visibilitychange', () => { updatePause(); if (!document.hidden) refresh(); });
   window.addEventListener('resize', setSpeed);
-  render(validate(window.NEWS_FEED));
+  let cached = null;
+  try { cached = validate(JSON.parse(localStorage.getItem(CACHE_KEY))); } catch { /* Invalid cache must not prevent loading the bundled news. */ }
+  const bundled = validate(window.NEWS_FEED);
+  render(cached?.items.length ? cached : bundled);
+  if (cached?.items.length) accept(bundled);
+  remember();
   refresh();
   setInterval(refresh, 5 * 60 * 1000);
 })();
