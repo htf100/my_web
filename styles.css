@@ -39,6 +39,7 @@ a { color: inherit; }
 .sidebar-bottom p { font-size: 0.75rem; color: #8296b3; margin-bottom: 0; line-height: 1.5; margin-top: 7px; }
 main { min-width: 0; margin-left: var(--sidebar-width); }
 .topbar { border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; background: white; min-height: 52px; padding: 9px 16px; gap: 10px; }
+.topbar-title { display: flex; align-items: center; gap: 6px; }
 h1 { line-height: 1.3; letter-spacing: -0.03em; font-size: 1.125rem; margin: 0; }
 .top-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 #lock-status { font-size: 0.875rem; color: #74849a; }
@@ -166,6 +167,7 @@ dialog::backdrop { background: rgba(17, 30, 56, 0.376); backdrop-filter: blur(3p
 .news-reduced .news-group + .news-group { display: none; }
 .news-empty .news-track { animation: none; transform: none; }
 .copy:hover { background: #e7edf7; border-color: transparent; }
+.pinned-copy { color: #8290a2; }
 .copy svg { display: block; width: 18px; height: 18px; fill: none; stroke: currentcolor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .copy.copied, .copy.copied:hover { color: #147d68; background: #e6f6ef; border-color: transparent; }
 .copy-check { display: block; font-family: Arial, sans-serif; font-size: 23px; font-weight: 700; line-height: 1; }

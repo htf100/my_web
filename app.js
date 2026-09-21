@@ -4,6 +4,7 @@
   const $ = s => document.querySelector(s);
   const KEY = 'htf-command-desk-v2';
   const VIEW_KEY = 'htf-command-desk-layout-v2';
+  const PINNED_KEY = 'htf-command-desk-pinned-copy-v1:' + new URL('.', location.href).pathname;
   const clone = value => JSON.parse(JSON.stringify(value));
   const uid = () => 'id-' + crypto.randomUUID();
   let library = M.validate(window.COMMAND_LIBRARY);
@@ -146,7 +147,7 @@
     path.setAttribute('d', 'M9 9h11v11H9z M15 5V3H3v12h2');
     svg.append(path); copyButton.replaceChildren(svg);
     copyButton.classList.remove('copied');
-    copyButton.title = '复制命令';
+    copyButton.title = copyButton.dataset.copyLabel || '复制命令';
   }
   async function copyCommand(command, code, copyButton) {
     clearTimeout(copyTimers.get(copyButton));
@@ -159,12 +160,46 @@
       input.remove(); copyButton.focus({ preventScroll: true });
     }
     if (!copied) {
+      if (!code) return notify('复制未成功，请允许浏览器访问剪贴板后重试。');
       const range = document.createRange(); range.selectNodeContents(code); const selection = getSelection(); selection.removeAllRanges(); selection.addRange(range);
       return notify('内容已选中，请按 Ctrl+C 或 ⌘C 复制。');
     }
     setCopyState(copyButton, true); notify(`已复制：${command.title}`);
     copyTimers.set(copyButton, setTimeout(() => { setCopyState(copyButton, false); copyTimers.delete(copyButton); }, 2000));
   }
+  function openPinnedCopy() {
+    const body = showDialog('置顶复制内容', '保存', data => {
+      const value = data.get('pinned-value');
+      if (typeof value !== 'string' || !value.length) throw new Error('请输入要复制的内容。');
+      try { localStorage.setItem(PINNED_KEY, value); }
+      catch { throw new Error('浏览器未能保存，请检查本地存储权限。'); }
+      input.value = '';
+      notify('已保存，下次点击顶部图标即可复制。');
+    });
+    body.append(el('p', 'dialog-help', '仅保存在当前浏览器，不上传，也不包含在命令备份中。输入新内容可替换原内容。'));
+    const input = field(body, 'pinned-value', '要复制的内容', '', 'password', true);
+    input.minLength = 1; input.maxLength = 2000; input.spellcheck = false;
+    body.append(button('清除已保存内容', () => {
+      try { localStorage.removeItem(PINNED_KEY); }
+      catch { return notify('清除失败，请检查浏览器的本地存储权限。'); }
+      const pinned = $('#pinned-copy');
+      clearTimeout(copyTimers.get(pinned)); setCopyState(pinned, false);
+      $('#modal').close(); notify('置顶内容已清除。');
+    }, 'danger-link'));
+    input.focus();
+  }
+  const pinnedCopy = $('#pinned-copy');
+  setCopyState(pinnedCopy, false);
+  pinnedCopy.addEventListener('click', async () => {
+    let value;
+    try { value = localStorage.getItem(PINNED_KEY); }
+    catch { return notify('无法读取置顶内容，请检查浏览器的本地存储权限。'); }
+    if (!value) return openPinnedCopy();
+    pinnedCopy.disabled = true;
+    try { await copyCommand({ code: value, title: '置顶内容' }, null, pinnedCopy); }
+    finally { pinnedCopy.disabled = false; }
+  });
+  pinnedCopy.addEventListener('contextmenu', event => { event.preventDefault(); openPinnedCopy(); });
   function card(command) {
     const article = el('article', 'card'); article.dataset.command = command.id; article.dataset.dropCategory = command.category; article.dataset.before = command.id;
     const meta = el('div', 'card-meta'); meta.append(el('span', 'tag', command.context || command.environment), el('span', 'language', command.language));
@@ -248,6 +283,7 @@
     active = Math.min(active, view.count - 1);
     $('#unlock').hidden = unlocked; $('#unlock').textContent = record?.lock ? '密令解锁' : '设置密令';
     $('#lock').hidden = !unlocked; $('#change-passphrase').hidden = !unlocked;
+    $('#manage-pinned-copy').hidden = !unlocked;
     $('#lock-status').textContent = unlocked ? '编辑已解锁' : '只读模式'; $('#lock-status').classList.toggle('unlocked', unlocked);
     $('#undo').hidden = !unlocked || !history.length;
     const missing = projectPack.commands.filter(c => !library.commands.some(existing => existing.id === c.id)).length;
@@ -405,6 +441,7 @@
   $('#modal').addEventListener('close', () => { $('#dialog-body').querySelectorAll('input[type=password]').forEach(input => input.value = ''); });
   $('#unlock').addEventListener('click', () => openUnlock());
   $('#change-passphrase').addEventListener('click', () => openUnlock(true));
+  $('#manage-pinned-copy').addEventListener('click', openPinnedCopy);
   $('#lock').addEventListener('click', () => { unlocked = false; history = []; render(); notify('编辑已锁定，仍可浏览和复制。'); });
   $('#add-command').addEventListener('click', () => openCommand());
   $('#add-project-commands').addEventListener('click', () => requireEdit(() => {
