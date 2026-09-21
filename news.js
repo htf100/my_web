@@ -75,6 +75,8 @@
   function updateStatus() {
     if (!currentItems().length) {
       $('#news-updated').textContent = '暂未获取 · 可查看来源';
+      $('#news-updated').title = '暂未取得新闻，请打开新闻列表查看来源。';
+      $('#news-updated').setAttribute('aria-label', $('#news-updated').title);
       return;
     }
     const age = Date.now() - Date.parse(feed?.fetchedAt || 0);
@@ -82,8 +84,12 @@
     const prefix = olderNews ? '较早新闻' : age > 3 * 3600000 ? '更新延迟' : feed?.status === 'cached' || refreshFailed ? '缓存' : feed?.status === 'partial' ? '部分来源' : '更新';
     const snapshotLabel = feed ? `${prefix} ${dateLabel(feed.fetchedAt)}` : '未取得';
     const liveLabel = liveFeed ? `${liveFailed ? '缓存' : Date.now() - Date.parse(liveFeed.fetchedAt) > 15 * 60000 ? '延迟' : '已检查'} ${dateLabel(liveFeed.fetchedAt)}` : '未取得';
-    $('#news-updated').textContent = `财经直连 ${liveLabel} · 全源 ${snapshotLabel}`;
-    $('#news-updated').title = '财经直连为华尔街见闻公开快讯；全源为定时发布的新闻快照。检查时间不等于新闻发布时间。';
+    const timeOnly = value => new Date(value).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
+    const liveCompact = !liveFeed ? '未取得' : liveFailed ? '缓存' : Date.now() - Date.parse(liveFeed.fetchedAt) > 15 * 60000 ? '延迟' : timeOnly(liveFeed.fetchedAt);
+    const snapshotCompact = !feed ? '未取得' : prefix === '更新' ? timeOnly(feed.fetchedAt) : prefix;
+    $('#news-updated').textContent = `快讯 ${liveCompact} · 全源 ${snapshotCompact}`;
+    $('#news-updated').title = `财经直连 ${liveLabel} · 全源 ${snapshotLabel}\n财经直连为华尔街见闻公开快讯；全源为定时发布的新闻快照。检查时间不等于新闻发布时间。`;
+    $('#news-updated').setAttribute('aria-label', $('#news-updated').title);
     const shown = selectedItems().length;
     $('#news-summary').textContent = `${shown} / ${currentItems().length} 条 · 财经直连 ${liveLabel}；全源 ${snapshotLabel}。${order === 'priority' ? '近期宏观政策与来源重点优先，非热度排行' : '按发布时间排列'}；外文标题经机器翻译，点击标题查看原文。`;
   }

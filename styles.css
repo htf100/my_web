@@ -162,9 +162,9 @@ dialog::backdrop { background: rgba(17, 30, 56, 0.376); backdrop-filter: blur(3p
 .manager-actions button { padding: 5px; font-size: 0.75rem; }
 .mobile-menu { display: none; }
 .news-strip { height: var(--news-height); position: fixed; inset: 0 0 auto; z-index: 20; background: transparent; color: #233e64; display: flex; align-items: center; border: 0; box-shadow: none; pointer-events: none; gap: 12px; padding: 0 14px; }
-.news-label { flex-shrink: 0; min-width: calc(var(--sidebar-width) - 26px); line-height: 1.3; }
+.news-label { flex: 0 0 calc(var(--sidebar-width) - 26px); width: calc(var(--sidebar-width) - 26px); min-width: 0; overflow: hidden; line-height: 1.3; }
 .news-label strong { display: block; font-weight: 600; letter-spacing: 0.035em; color: #78e0d3; font-size: 0.8125rem; }
-.news-label > span { display: block; color: #9fb4ce; font-size: 0.6875rem; }
+.news-label > span { display: block; margin-top: 3px; color: #9fb4ce; font-size: 0.625rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; pointer-events: auto; }
 .news-viewport { flex: 1 1 0%; min-width: 0; overflow: hidden; mask-image: linear-gradient(to right, transparent, black 15px, black calc(100% - 15px), transparent); }
 .news-track { display: flex; width: max-content; animation: news-slide var(--news-duration,120s) linear infinite; will-change: transform; }
 .news-group { display: flex; align-items: center; gap: 32px; padding: 2px 32px 2px 0; flex-shrink: 0; }
@@ -254,7 +254,7 @@ dialog::backdrop { background: rgba(17, 30, 56, 0.376); backdrop-filter: blur(3p
   .sidebar.menu-open #categories { max-height: 45vh; }
   .column-body > .command-group > .group-heading { display: none; }
   .news-strip { display: grid; grid-template-columns: 1fr auto; grid-template-rows: 26px 30px; gap: 0 8px; padding: 2px 10px 4px; }
-  .news-label { display: flex; gap: 10px; align-items: center; min-width: 0; }
+  .news-label { display: flex; gap: 10px; align-items: center; min-width: 0; width: auto; }
   .news-label strong { white-space: nowrap; color: #147d79; text-shadow: #ffffff 0 1px 2px, #ffffff 0 0 5px; font-size: 0.75rem; }
   .news-label > span { display: none; }
   .news-controls { grid-area: 1 / 2; }
