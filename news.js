@@ -6,13 +6,13 @@
   const refreshButton = $('#news-refresh');
   const preference = matchMedia('(prefers-reduced-motion: reduce)');
   const MAX_ITEMS = 48;
-  const sourceNames = { 'bbc-zh': 'BBC 中文', 'dw-zh': '德国之声中文', 'bbc-world': 'BBC World', 'wallstreetcn': '华尔街见闻', 'chinanews-finance': '中新网财经', 'bbc-business': 'BBC 商业', fed: '美联储', ecb: '欧洲央行' };
+  const sourceNames = { 'bbc-zh': 'BBC 中文', 'dw-zh': '德国之声中文', 'bbc-world': 'BBC 国际', 'wallstreetcn': '华尔街见闻', 'chinanews-finance': '中新网财经', 'bbc-business': 'BBC 商业', fed: '美联储', ecb: '欧洲央行' };
   const financeSources = new Set(['wallstreetcn', 'chinanews-finance', 'bbc-business', 'fed', 'ecb']);
   const topics = new Set(['宏观政策', '基金与ETF', '全球市场', '汇率与商品', '产业公司', '财经综合', '国际']);
   const sources = [
     ['BBC 中文', 'https://www.bbc.com/zhongwen'],
     ['德国之声中文', 'https://www.dw.com/zh/'],
-    ['BBC World', 'https://www.bbc.com/news/world'],
+    ['BBC 国际', 'https://www.bbc.com/news/world'],
     ['华尔街见闻', 'https://wallstreetcn.com/live/global'],
     ['中新网财经', 'https://www.chinanews.com.cn/finance/'],
     ['BBC 商业', 'https://www.bbc.com/business'],
@@ -44,10 +44,16 @@
     const items = [], seen = new Set();
     for (const item of raw.items.slice(0, MAX_ITEMS * 2)) {
       if (!item || typeof item.title !== 'string' || !item.title.trim() || item.title.length > 350 || !Object.hasOwn(sourceNames, item.sourceId)) continue;
+      // Old browser caches and failed translations must never flash English headlines.
+      const chinese = (item.title.match(/[\u3400-\u9fff]/g) || []).length;
+      const letters = (item.title.match(/[A-Za-z]/g) || []).length;
+      const words = (item.title.match(/[A-Za-z]+/g) || []).length;
+      if (letters > 0 && (chinese === 0 || (words >= 3 && letters > chinese * 2))) continue;
       const url = safeURL(item.url);
       if (!url || seen.has(url) || !Number.isFinite(Date.parse(item.publishedAt))) continue;
       const category = financeSources.has(item.sourceId) ? 'finance' : 'world';
       seen.add(url); items.push({ title: item.title, url, sourceId: item.sourceId, source: sourceNames[item.sourceId], publishedAt: item.publishedAt,
+        originalTitle: typeof item.originalTitle === 'string' && item.originalTitle.length <= 350 ? item.originalTitle : '',
         category, topic: topics.has(item.topic) ? item.topic : category === 'finance' ? '财经综合' : '国际',
         priority: [1, 2, 3].includes(item.priority) ? item.priority : 1, publisherImportant: item.publisherImportant === true });
     }
@@ -79,7 +85,7 @@
     $('#news-updated').textContent = `财经直连 ${liveLabel} · 全源 ${snapshotLabel}`;
     $('#news-updated').title = '财经直连为华尔街见闻公开快讯；全源为定时发布的新闻快照。检查时间不等于新闻发布时间。';
     const shown = selectedItems().length;
-    $('#news-summary').textContent = `${shown} / ${currentItems().length} 条 · 财经直连 ${liveLabel}；全源 ${snapshotLabel}。${order === 'priority' ? '近期宏观政策与来源重点优先，非热度排行' : '按发布时间排列'}；点击标题查看原文。`;
+    $('#news-summary').textContent = `${shown} / ${currentItems().length} 条 · 财经直连 ${liveLabel}；全源 ${snapshotLabel}。${order === 'priority' ? '近期宏观政策与来源重点优先，非热度排行' : '按发布时间排列'}；外文标题经机器翻译，点击标题查看原文。`;
   }
   function updatePause() {
     const reduced = preference.matches;
@@ -95,7 +101,7 @@
   function articleLink(item, ticker = false) {
     const a = node('a', ticker ? 'news-item' : 'news-list-link');
     a.href = item.url; a.target = '_blank'; a.rel = 'noopener noreferrer';
-    a.title = `${item.title} · ${item.source} · ${dateLabel(item.publishedAt)}`;
+    a.title = `${item.title} · ${item.source} · ${dateLabel(item.publishedAt)}${item.originalTitle ? '\n机器翻译，原文：' + item.originalTitle : ''}`;
     if (ticker) a.tabIndex = -1; // The equivalent dialog list provides stable keyboard targets.
     a.append(node('span', 'news-source-tag', item.source), node('span', 'news-headline', item.title));
     a.dataset.category = item.category;

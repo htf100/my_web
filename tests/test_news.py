@@ -13,6 +13,39 @@ NOW = datetime(2026, 9, 20, 12, tzinfo=timezone.utc)
 
 
 class NewsTests(unittest.TestCase):
+    def test_translation_detection_cache_and_failure(self):
+        chinese = {'title': '美联储维持利率，关注 ETF 与 AI 板块', 'sourceId': 'fed'}
+        english = {'title': 'Federal Reserve issues FOMC statement', 'sourceId': 'fed', 'url': 'https://www.federalreserve.gov/story', 'publishedAt': news.iso(NOW)}
+        self.assertFalse(news.needs_translation(chinese['title']))
+        self.assertTrue(news.needs_translation(english['title']))
+        self.assertTrue(news.needs_translation('市场：Federal Reserve issues FOMC statement'))
+        calls = []
+        def translate(title):
+            calls.append(title)
+            return '美联储发布联邦公开市场委员会声明'
+        result = news.translate_items([chinese, english], [], translate)
+        self.assertEqual(calls, [english['title']])
+        self.assertEqual(result[0], chinese)
+        self.assertEqual(result[1]['originalTitle'], english['title'])
+        self.assertEqual(result[1]['url'], english['url'])
+        self.assertEqual(result[1]['publishedAt'], english['publishedAt'])
+        cache = news.cached_payload({'fetchedAt': news.iso(NOW), 'items': [result[1]]})
+        self.assertEqual(cache['items'][0]['originalTitle'], english['title'])
+        def fail(title):
+            raise TimeoutError('translation unavailable')
+        self.assertEqual(news.translate_items([english], cache['items'], fail)[0]['title'], result[1]['title'])
+        self.assertEqual(news.translate_items([english], [], fail), [english])
+        changed = {**english, 'title': 'Federal Reserve issues new statement'}
+        self.assertEqual(news.translate_items([changed], cache['items'], fail), [changed])
+
+    def test_translation_response_validation(self):
+        with patch.object(news, 'download', return_value=json.dumps([[['美联储发布', 'Federal Reserve'], ['政策声明', 'statement']]]).encode()):
+            self.assertEqual(news.translate_title('Federal Reserve statement'), '美联储发布政策声明')
+        for translated in ['', 'Untranslated headline', '中' * 351]:
+            with patch.object(news, 'download', return_value=json.dumps([[[translated]]]).encode()):
+                with self.assertRaises(ValueError):
+                    news.translate_title('English headline')
+
     def test_rss_and_rdf_dates_titles_and_links(self):
         rss = b'''<rss><channel><item><title>&lt;b&gt;World &amp; news&lt;/b&gt;</title><link>https://www.bbc.com/news/articles/one?utm_source=rss</link><pubDate>Sun, 20 Sep 2026 10:00:00 GMT</pubDate></item></channel></rss>'''
         items = news.parse_feed(rss, news.SOURCES[0], NOW)

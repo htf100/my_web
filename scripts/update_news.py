@@ -20,7 +20,7 @@ SOURCES = [
      "feed": "https://feeds.bbci.co.uk/zhongwen/simp/rss.xml", "limit": 5},
     {"id": "dw-zh", "name": "德国之声中文", "url": "https://www.dw.com/zh/",
      "feed": "https://rss.dw.com/rdf/rss-chi-all", "limit": 5},
-    {"id": "bbc-world", "name": "BBC World", "url": "https://www.bbc.com/news/world",
+    {"id": "bbc-world", "name": "BBC 国际", "url": "https://www.bbc.com/news/world",
      "feed": "https://feeds.bbci.co.uk/news/world/rss.xml", "limit": 2},
     {"id": "wallstreetcn", "name": "华尔街见闻", "url": "https://wallstreetcn.com/live/global",
      "feed": "https://api-one.wallstcn.com/apiv1/content/lives?channel=global-channel&limit=100", "limit": 10, "category": "finance", "format": "wallstreetcn"},
@@ -213,10 +213,54 @@ def cached_payload(raw: dict) -> dict | None:
         title, link, date = item.get("title"), safe_link(str(item.get("url", ""))), parse_date(str(item.get("publishedAt", "")))
         if source and isinstance(title, str) and 0 < len(title) <= 350 and link and date:
             items.append(annotate({"title": title, "url": link, "source": source["name"], "sourceId": source["id"], "publishedAt": iso(date)}, source, item.get("publisherImportant") is True))
+            original = item.get("originalTitle")
+            if isinstance(original, str) and 0 < len(original) <= 350:
+                items[-1]["originalTitle"] = original
     if not items:
         return None
     return {"version": 1, "fetchedAt": raw["fetchedAt"], "items": items,
             "sources": [{**source, "ok": False} for source in SOURCES], "status": "cached"}
+
+
+def needs_translation(title: str) -> bool:
+    chinese = len(re.findall(r"[\u3400-\u9fff]", title))
+    letters = len(re.findall(r"[A-Za-z]", title))
+    words = re.findall(r"[A-Za-z]+", title)
+    return letters > 0 and (chinese == 0 or (len(words) >= 3 and letters > chinese * 2))
+
+
+def translate_title(title: str) -> str:
+    query = urlencode({"client": "gtx", "sl": "auto", "tl": "zh-CN", "dt": "t", "q": title})
+    raw = json.loads(download("https://translate.googleapis.com/translate_a/single?" + query))
+    translated = "".join(part[0] for part in raw[0] if isinstance(part, list) and isinstance(part[0], str))
+    translated = re.sub(r"\s+", " ", translated).strip()
+    if not translated or len(translated) > 350 or not re.search(r"[\u3400-\u9fff]", translated) or needs_translation(translated):
+        raise ValueError("no usable Chinese translation")
+    return translated
+
+
+def translate_items(items: list[dict], previous: list[dict], translate=translate_title) -> list[dict]:
+    # Match the full original headline, so revised articles cannot reuse stale translations.
+    cache = {item["originalTitle"]: item["title"] for item in previous
+             if isinstance(item.get("originalTitle"), str) and isinstance(item.get("title"), str)
+             and 0 < len(item["title"]) <= 350 and not needs_translation(item["title"])}
+
+    def convert(item):
+        if not needs_translation(item["title"]):
+            return item
+        original = item["title"]
+        try:
+            title = cache.get(original) or translate(original)
+            if not title or len(title) > 350 or needs_translation(title) or not re.search(r"[\u3400-\u9fff]", title):
+                raise ValueError("invalid translation")
+            return {**item, "title": title, "originalTitle": original}
+        except Exception as error:
+            # Keep the original for a later retry; the UI excludes untranslated headlines.
+            print(f"Translation unavailable: {item['sourceId']}: {error}")
+            return item
+
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        return list(executor.map(convert, items))
 
 
 def main() -> None:
@@ -227,8 +271,8 @@ def main() -> None:
     items, sources = collect(now)
     payload = {"version": 1, "fetchedAt": iso(now), "items": items, "sources": sources,
                "status": "fresh" if all(source["ok"] for source in sources) else "partial"}
-    if not items or any(not source["ok"] for source in sources):
-        candidates = []
+    candidates = []
+    if any(needs_translation(item["title"]) for item in items) or not items or any(not source["ok"] for source in sources):
         for loader in (lambda: download("https://htf100.github.io/my_web/news.json"), lambda: (ROOT / "news.json").read_bytes()):
             try:
                 cached = cached_payload(json.loads(loader()))
@@ -236,6 +280,7 @@ def main() -> None:
                     candidates.append(cached)
             except Exception:
                 pass
+    if not items or any(not source["ok"] for source in sources):
         if candidates:
             cached = max(candidates, key=lambda candidate: parse_date(candidate["fetchedAt"]))
             if not items:
@@ -247,6 +292,8 @@ def main() -> None:
                 payload["items"] = sorted(items + retained, key=lambda item: rank(item, now), reverse=True)[:MAX_ITEMS]
         elif not items:
             payload["status"] = "unavailable"
+    previous = [item for candidate in sorted(candidates, key=lambda candidate: parse_date(candidate["fetchedAt"])) for item in candidate["items"]]
+    payload["items"] = translate_items(payload["items"], previous)
     args.output.mkdir(parents=True, exist_ok=True)
     data = json.dumps(payload, ensure_ascii=False, indent=2)
     (args.output / "news.json").write_text(data + "\n", encoding="utf-8")
