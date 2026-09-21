@@ -100,35 +100,56 @@
     renderNav();
   }
   function countCategory(id) { const ids = M.descendants(library, id); return library.commands.filter(c => ids.has(c.category)).length; }
+  function navIcon(kind) {
+    const paths = {
+      all: 'M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z',
+      'server-root': 'M4 3h16v7H4z M4 14h16v7H4z M7 6.5h.01 M7 17.5h.01 M15 6.5h2 M15 17.5h2',
+      'colab-root': 'M7 18H6a4 4 0 0 1-.6-7.95A6.5 6.5 0 0 1 18 9a4.5 4.5 0 0 1 0 9h-1 M10 13l-2 2 2 2 M14 13l2 2-2 2',
+      'troubleshoot-root': 'M12 3 2 21h20L12 3z M12 9v5 M12 17h.01',
+      'htf-projects': 'M9 7V4h6v3 M3 7h18v13H3z M3 12a23 23 0 0 0 18 0 M10 12h4v3h-4z',
+      folder: 'M3 7V5h6l2 2h10v13H3z',
+      chevron: 'm9 5 7 7-7 7',
+    };
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('class', 'nav-icon');
+    svg.setAttribute('aria-hidden', 'true'); svg.setAttribute('focusable', 'false');
+    const path = document.createElementNS(svg.namespaceURI, 'path');
+    path.setAttribute('d', paths[kind] || paths.folder); svg.append(path);
+    return svg;
+  }
   function renderNav() {
-    const nav = $('#categories'); nav.replaceChildren();
+    const nav = $('#categories'), scrollTop = nav.scrollTop; nav.replaceChildren();
+    $('#nav-active-column').textContent = active + 1;
     const choose = id => {
       view.panels[active] = id; saveView(); render();
       if (matchMedia('(max-width: 760px)').matches) { $('.sidebar').classList.remove('menu-open'); $('#mobile-menu').setAttribute('aria-expanded', 'false'); }
     };
-    const all = button('全部命令', () => choose('all'), 'nav-item');
-    all.append(el('small', '', library.commands.length));
+    const all = button('', () => choose('all'), 'nav-item nav-all');
+    all.append(navIcon('all'), el('span', 'nav-title', '全部命令'), el('small', 'nav-count', library.commands.length));
     if (view.panels[active] === 'all') all.setAttribute('aria-current', 'page');
     nav.append(all);
     function add(parent, container) {
       for (const c of library.categories.filter(c => c.parent === parent)) {
-        const item = el('div', 'tree-node'), row = el('div', 'tree-row');
+        const item = el('div', 'tree-node' + (parent === null ? ' tree-root' : '')), row = el('div', 'tree-row');
         const children = library.categories.some(n => n.parent === c.id), collapsed = view.collapsed.includes(c.id);
         if (children) {
-          const toggle = button(collapsed ? '›' : '⌄', () => {
+          const toggle = button('', () => {
             view.collapsed = collapsed ? view.collapsed.filter(id => id !== c.id) : [...view.collapsed, c.id]; saveView(); renderNav();
           }, 'tree-toggle');
+          toggle.append(navIcon('chevron'));
           toggle.setAttribute('aria-label', `${collapsed ? '展开' : '收起'}${c.label}`); toggle.setAttribute('aria-expanded', String(!collapsed)); row.append(toggle);
-        } else row.append(el('span', 'tree-dot', '·'));
-        const select = button(c.label, () => choose(c.id), 'nav-item');
-        select.title = M.path(library, c.id); select.append(el('small', '', countCategory(c.id)));
-        if (view.panels[active] === c.id) select.setAttribute('aria-current', 'page');
+        } else { const dot = el('span', 'tree-dot'); dot.setAttribute('aria-hidden', 'true'); row.append(dot); }
+        const select = button('', () => choose(c.id), 'nav-item');
+        if (parent === null) select.append(navIcon(c.id));
+        select.title = M.path(library, c.id); select.append(el('span', 'nav-title', c.label), el('small', 'nav-count', countCategory(c.id)));
+        if (view.panels[active] === c.id) { select.setAttribute('aria-current', 'page'); row.classList.add('is-current'); }
         row.append(select); item.append(row);
         if (children && !collapsed) { const nested = el('div', 'tree-children'); add(c.id, nested); item.append(nested); }
         container.append(item);
       }
     }
     add(null, nav); $('#category-count').textContent = library.categories.length;
+    nav.scrollTop = scrollTop;
   }
   const copyTimers = new WeakMap();
   function setCopyState(copyButton, copied) {

@@ -44,7 +44,7 @@ const root=path.resolve(__dirname,'..');
   for(const item of original.items.filter(i=>i.sourceId==='dw-zh'))assert.equal((await headlines()).includes(item.title),true);
   const lastGood=await headlines();status=503;await page.reload({waitUntil:'networkidle'});assert.deepEqual(await headlines(),lastGood);
   // The success state replaces the copy SVG with a visible check, then restores it.
-  const copy=page.locator('.copy').first(),command=await page.locator('.card code').first().textContent();
+  const copy=page.locator('.card .copy').first(),command=await page.locator('.card code').first().textContent();
   await copy.focus();await page.keyboard.press('Enter');await copy.locator('.copy-check').waitFor();
   assert.equal(await copy.locator('.copy-check').textContent(),'✓');assert.equal(await copy.locator('svg').count(),0);
   assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),command);

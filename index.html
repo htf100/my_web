@@ -7,10 +7,10 @@
   <meta name="description" content="可分栏的个人命令工作台，多级分类、一键复制和本地编辑。">
   <title>命令工作台 · HTF</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23111c30'/%3E%3Cpath d='m15 20 12 12-12 12m19 0h15' fill='none' stroke='%235ad4bd' stroke-width='5'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="./styles.css?v=pinned-copy-1">
+  <link rel="stylesheet" href="./styles.css?v=sidebar-2">
   <script src="./commands.js?v=python-launcher-1" defer></script>
   <script src="./model.js?v=htf-pack-1" defer></script>
-  <script src="./app.js?v=pinned-copy-1" defer></script>
+  <script src="./app.js?v=sidebar-2" defer></script>
   <script src="./news-data.js" defer></script>
   <script src="./news.js?v=copy-news-2" defer></script>
 </head>
@@ -23,12 +23,12 @@
     <span id="news-refresh-status" class="news-refresh-status" role="status" aria-live="polite"></span>
   </section>
   <aside class="sidebar">
-    <a class="brand" href="./"><span class="brand-icon" aria-hidden="true">&gt;_</span><span>命令工作台<small>HTF / COMMAND DESK</small></span></a>
+    <a class="brand" href="./"><span class="brand-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m5 7 5 5-5 5m8 0h6"/></svg></span><span class="brand-name">命令工作台<small>HTF · COMMAND DESK</small></span></a>
     <button id="mobile-menu" class="mobile-menu" type="button" aria-expanded="false" aria-controls="categories">分类 ☰</button>
-    <div class="nav-label">分类目录 <span id="category-count"></span></div>
-    <p class="nav-hint">点击分类，显示在当前栏</p>
+    <div class="nav-label">命令目录 <span id="category-count"></span></div>
+    <p class="nav-hint">选择分类 <span>显示在第 <b id="nav-active-column">1</b> 栏</span></p>
     <nav id="categories" aria-label="多级分类"></nav>
-    <div class="sidebar-bottom"><button id="manage-categories" type="button">管理分类</button><p>保存在当前浏览器<br>导出备份，随时带走。</p></div>
+    <div class="sidebar-bottom"><button id="manage-categories" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2.5" fill="var(--nav)"/><circle cx="15" cy="17" r="2.5" fill="var(--nav)"/></svg>管理分类<span aria-hidden="true">↗</span></button><p><span class="local-indicator" aria-hidden="true"></span>浏览器本地保存<small>定期导出，让常用命令随身可用</small></p></div>
   </aside>
   <main id="main">
     <header class="topbar"><div class="topbar-title"><h1>我的命令工作台</h1><button id="pinned-copy" class="copy pinned-copy" type="button" aria-label="复制置顶内容" data-copy-label="复制置顶内容"></button></div><div class="top-actions"><span id="lock-status">只读模式</span><button id="unlock" class="primary" type="button">设置密令</button><button id="lock" type="button" hidden>锁定</button></div></header>
