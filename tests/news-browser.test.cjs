@@ -2,13 +2,13 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const http=require('node:http'),fs=require('node:fs'),assert=require('node:assert/strict'),path=require('node:path');
 const root=path.resolve(__dirname,'..');
 (async()=>{
- const server=http.createServer((req,res)=>{const name=req.url.split('?')[0].replace(/^\/my_web\//,'')||'index.html';if(!['index.html','styles.css','app.js','model.js','commands.js','news.js','news-data.js','news.json'].includes(name)){res.writeHead(404).end();return;}res.setHeader('Content-Type',name.endsWith('.js')?'text/javascript':name.endsWith('.css')?'text/css':name.endsWith('.json')?'application/json':'text/html');res.end(fs.readFileSync(path.join(root,name)))});
+ const server=http.createServer((req,res)=>{const name=req.url.split('?')[0].replace(/^\/my_web\//,'')||'index.html';if(!['index.html','styles.css','app.js','model.js','commands.js','news.js','live-news.js','news-data.js','news.json'].includes(name)){res.writeHead(404).end();return;}res.setHeader('Content-Type',name.endsWith('.js')?'text/javascript':name.endsWith('.css')?'text/css':name.endsWith('.json')?'application/json':'text/html');res.end(fs.readFileSync(path.join(root,name)))});
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
  try{
   const context=await browser.newContext({viewport:{width:1440,height:1000}}),page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
   const url='http://127.0.0.1:'+server.address().port+'/my_web/';
-  await page.goto(url,{waitUntil:'networkidle'});assert.equal(await page.locator('.card').count(),45);assert.equal(await page.locator('#news-list li').count(),JSON.parse(fs.readFileSync(path.join(root,'news.json'))).items.length);assert.equal(await page.locator('.news-group').count(),2);
+  await page.route('https://api-one.wallstcn.com/**', r=>r.abort());await page.goto(url,{waitUntil:'networkidle'});assert.equal(await page.locator('.card').count(),45);assert.equal(await page.locator('#news-list li').count(),JSON.parse(fs.readFileSync(path.join(root,'news.json'))).items.length);assert.equal(await page.locator('.news-group').count(),2);
   await page.mouse.move(900,400);const transform=()=>page.locator('#news-track').evaluate(n=>getComputedStyle(n).transform);
   const a=await transform();await page.waitForTimeout(250);assert.notEqual(await transform(),a,'ticker moves');
   await page.locator('#news-pause').click();const b=await transform();await page.waitForTimeout(250);assert.equal(await transform(),b,'manual pause');

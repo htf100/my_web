@@ -16,7 +16,7 @@ const root = path.resolve(__dirname, '..');
     const name = req.url.split('?')[0].replace(/^\//, '') || 'index.html';
     if (name === 'news.json') { res.setHeader('Content-Type', 'application/json'); return res.end(JSON.stringify(payload)); }
     if (name === 'news-data.js') { res.setHeader('Content-Type', 'text/javascript'); return res.end('window.NEWS_FEED=' + JSON.stringify(payload)); }
-    if (!['index.html', 'styles.css', 'app.js', 'model.js', 'commands.js', 'news.js'].includes(name)) return res.writeHead(404).end();
+    if (!['index.html', 'styles.css', 'app.js', 'model.js', 'commands.js', 'news.js', 'live-news.js'].includes(name)) return res.writeHead(404).end();
     res.setHeader('Content-Type', name.endsWith('.js') ? 'text/javascript' : name.endsWith('.css') ? 'text/css' : 'text/html');
     res.end(fs.readFileSync(path.join(root, name)));
   });
@@ -25,9 +25,11 @@ const root = path.resolve(__dirname, '..');
   try {
     const page = await browser.newPage({ viewport: { width: 1440, height: 950 } });
     const errors = []; page.on('pageerror', e => errors.push(e.message));
-    await page.goto('http://127.0.0.1:' + server.address().port, { waitUntil: 'networkidle' });
+    await page.route('https://api-one.wallstcn.com/**', r=>r.abort());await page.goto('http://127.0.0.1:' + server.address().port, { waitUntil: 'networkidle' });
     assert.equal(await page.locator('#news-list li').count(), 4);
-    assert.equal(await page.locator('#news-list .news-headline').first().innerText(), '央行利率公告');
+    assert.equal(await page.locator('#news-list .news-headline').first().innerText(), '国际新闻');
+    await page.locator('#news-list-open').click();await page.locator('#news-order').selectOption('priority');
+    assert.equal(await page.locator('#news-list .news-headline').first().innerText(), '央行利率公告');await page.locator('#news-list-close').click();
     await page.locator('#news-scope').selectOption('finance');
     assert.equal(await page.locator('#news-list li').count(), 3);
     assert.equal(await page.locator('.news-group').first().locator('[data-category="world"]').count(), 0);

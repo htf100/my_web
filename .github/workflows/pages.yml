@@ -5,7 +5,7 @@ on:
     branches: [main]
   workflow_dispatch:
   schedule:
-    - cron: '17 * * * *'
+    - cron: '7,22,37,52 * * * *'
 
 permissions:
   contents: read
@@ -26,12 +26,14 @@ jobs:
           node --check model.js
           node --check commands.js
           node --check news.js
+          node --check live-news.js
+          node --test tests/live-news.test.cjs
           node --test tests/model.test.cjs
           python3 -m unittest discover -s tests -p 'test_*.py'
       - name: Prepare static site
         run: |
           mkdir -p _site
-          cp index.html styles.css app.js model.js commands.js news.js .nojekyll _site/
+          cp index.html styles.css app.js model.js commands.js news.js live-news.js .nojekyll _site/
       - name: Refresh international and financial headlines
         run: python3 scripts/update_news.py --output _site
       - name: Upload site artifact

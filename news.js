@@ -21,9 +21,10 @@
   ];
   let feed = null, manualPause = false, refreshing = false, refreshFailed = false;
   let refreshMessageTimer;
-  let scope = 'all', order = 'priority';
+  let scope = 'all', order = 'latest', liveFeed = null, liveFailed = false;
   try { manualPause = localStorage.getItem('htf-news-paused') === 'true'; } catch { /* Optional preference. */ }
   try { const saved = localStorage.getItem('htf-news-scope-v1'); if (['all', 'finance', 'world'].includes(saved)) scope = saved; } catch { /* Optional preference. */ }
+  try { const saved = localStorage.getItem('htf-news-order-v1'); if (['latest', 'priority'].includes(saved)) order = saved; } catch { /* Optional preference. */ }
   function node(tag, className, text) {
     const element = document.createElement(tag);
     if (className) element.className = className;
@@ -53,25 +54,32 @@
     return { version: 1, fetchedAt: raw.fetchedAt, status: raw.status, items: items.slice(0, MAX_ITEMS) };
   }
   function isPriority(item) { return item.priority >= 3 && Date.now() - Date.parse(item.publishedAt) <= 72 * 3600000; }
+  function currentItems() {
+    const base = feed?.items || [];
+    return liveFeed?.items.length && (!feed || Date.parse(liveFeed.fetchedAt) > Date.parse(feed.fetchedAt))
+      ? [...liveFeed.items, ...base.filter(item => item.sourceId !== 'wallstreetcn')].slice(0, MAX_ITEMS) : base;
+  }
   function selectedItems() {
-    return (feed?.items || []).filter(item => scope === 'all' || item.category === scope).sort((a, b) =>
+    return currentItems().filter(item => scope === 'all' || item.category === scope).sort((a, b) =>
       (order === 'priority' ? Number(isPriority(b)) - Number(isPriority(a)) : 0) || Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
   }
   function dateLabel(value) {
     return new Date(value).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
   }
   function updateStatus() {
-    if (!feed || !feed.items.length) {
+    if (!currentItems().length) {
       $('#news-updated').textContent = '暂未获取 · 可查看来源';
       return;
     }
-    const age = Date.now() - Date.parse(feed.fetchedAt);
-    const olderNews = feed.items.every(item => Date.now() - Date.parse(item.publishedAt) > 72 * 3600000);
-    const prefix = olderNews ? '较早新闻' : age > 3 * 3600000 ? '更新延迟' : feed.status === 'cached' || refreshFailed ? '缓存' : feed.status === 'partial' ? '部分来源' : '更新';
-    $('#news-updated').textContent = `${prefix} ${dateLabel(feed.fetchedAt)}`;
-    $('#news-updated').title = `最近成功抓取：${new Date(feed.fetchedAt).toLocaleString('zh-CN')}。计划每小时更新，非实时热度排行。`;
+    const age = Date.now() - Date.parse(feed?.fetchedAt || 0);
+    const olderNews = currentItems().every(item => Date.now() - Date.parse(item.publishedAt) > 72 * 3600000);
+    const prefix = olderNews ? '较早新闻' : age > 3 * 3600000 ? '更新延迟' : feed?.status === 'cached' || refreshFailed ? '缓存' : feed?.status === 'partial' ? '部分来源' : '更新';
+    const snapshotLabel = feed ? `${prefix} ${dateLabel(feed.fetchedAt)}` : '未取得';
+    const liveLabel = liveFeed ? `${liveFailed ? '缓存' : Date.now() - Date.parse(liveFeed.fetchedAt) > 15 * 60000 ? '延迟' : '已检查'} ${dateLabel(liveFeed.fetchedAt)}` : '未取得';
+    $('#news-updated').textContent = `财经直连 ${liveLabel} · 全源 ${snapshotLabel}`;
+    $('#news-updated').title = '财经直连为华尔街见闻公开快讯；全源为定时发布的新闻快照。检查时间不等于新闻发布时间。';
     const shown = selectedItems().length;
-    $('#news-summary').textContent = `${shown} / ${feed.items.length} 条 · ${prefix} ${dateLabel(feed.fetchedAt)}。${order === 'priority' ? '近期宏观政策与来源重点优先，非热度排行' : '按发布时间排列'}；点击标题查看原文。`;
+    $('#news-summary').textContent = `${shown} / ${currentItems().length} 条 · 财经直连 ${liveLabel}；全源 ${snapshotLabel}。${order === 'priority' ? '近期宏观政策与来源重点优先，非热度排行' : '按发布时间排列'}；点击标题查看原文。`;
   }
   function updatePause() {
     const reduced = preference.matches;
@@ -101,6 +109,7 @@
     feed = next; track.replaceChildren(); $('#news-list').replaceChildren();
     const items = selectedItems();
     $('#news-scope').value = scope;
+    $('#news-order').value = order;
     document.querySelectorAll('#news-filters [data-scope]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.scope === scope)));
     strip.classList.toggle('news-empty', !items.length);
     if (items.length) {
@@ -132,7 +141,13 @@
     if (!next?.items.length || (feed?.items.length && Date.parse(next.fetchedAt) < Date.parse(feed.fetchedAt))) return false;
     // A changed fetch timestamp or missing articles alone must not erase old headlines.
     const changed = !feed?.items.length || next.items.some(item => !feed.items.some(old => old.url === item.url && old.title === item.title && old.publishedAt === item.publishedAt));
-    if (!changed) return false;
+    if (!changed) {
+      const before = JSON.stringify(selectedItems());
+      feed = { ...feed, fetchedAt: next.fetchedAt, status: next.status };
+      const displayChanged = before !== JSON.stringify(selectedItems());
+      if (displayChanged) render(feed);
+      remember(); updateStatus(); return displayChanged;
+    }
     if (next.status === 'partial' && feed?.items.length) {
       const updatedSources = new Set(next.items.map(item => item.sourceId));
       const retained = feed.items.filter(item => !updatedSources.has(item.sourceId));
@@ -156,14 +171,30 @@
     if (manual) { clearTimeout(refreshMessageTimer); $('#news-refresh-status').textContent = '正在获取，当前新闻继续显示…'; }
     const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 8000);
     try {
-      const response = await fetch('./news.json', { cache: 'no-store', signal: controller.signal });
-      if (!response.ok) throw new Error('news snapshot unavailable');
-      const next = validate(await response.json());
-      if (!next?.items.length) throw new Error('invalid or empty news snapshot');
-      refreshFailed = false;
-      const changed = accept(next);
+      const [snapshot, direct] = await Promise.allSettled([
+        fetch('./news.json', { cache: 'no-store', signal: controller.signal }).then(async response => {
+          if (!response.ok) throw new Error('snapshot unavailable');
+          const next = validate(await response.json());
+          if (!next?.items.length) throw new Error('empty snapshot');
+          return next;
+        }),
+        window.NewsLive.fetchLatest(controller.signal).then(validate),
+      ]);
+      let changed = false;
+      refreshFailed = snapshot.status !== 'fulfilled';
+      if (!refreshFailed) changed = accept(snapshot.value);
+      liveFailed = direct.status !== 'fulfilled' || !direct.value?.items.length;
+      if (!liveFailed) {
+        const before = JSON.stringify(selectedItems());
+        liveFeed = direct.value;
+        try { localStorage.setItem('htf-news-direct-v1', JSON.stringify(liveFeed)); } catch { /* Optional cache. */ }
+        if (before !== JSON.stringify(selectedItems())) { render(feed); changed = true; }
+      }
       updateStatus();
-      if (manual) refreshMessage(changed ? '已更新热点新闻' : '暂无新新闻，继续显示当前内容');
+      if (manual) {
+        const stale = !feed || Date.now() - Date.parse(feed.fetchedAt) > 3 * 3600000;
+        refreshMessage(`${liveFailed ? (changed ? '已更新热点新闻；财经直连失败，保留该来源旧新闻' : '财经直连失败，保留旧新闻') : changed ? '已更新热点新闻（财经直连已检查）' : '财经源已检查，暂无新新闻'}${stale ? '；全源快照更新延迟' : refreshFailed ? '；全源快照读取失败' : '；已检查全源快照'}`);
+      }
     } catch {
       refreshFailed = true; updateStatus();
       if (manual) refreshMessage(feed?.items.length ? '刷新失败，已保留当前新闻' : '刷新失败，请稍后重试');
@@ -181,7 +212,7 @@
   }
   $('#news-scope').addEventListener('change', event => changeScope(event.target.value));
   $('#news-filters').addEventListener('click', event => { const button = event.target.closest('[data-scope]'); if (button) changeScope(button.dataset.scope); });
-  $('#news-order').addEventListener('change', event => { order = event.target.value; render(feed); });
+  $('#news-order').addEventListener('change', event => { order = event.target.value; try { localStorage.setItem('htf-news-order-v1', order); } catch { /* Optional preference. */ } render(feed); });
   $('#news-pause').addEventListener('click', () => {
     manualPause = !manualPause;
     try { localStorage.setItem('htf-news-paused', String(manualPause)); } catch { /* Keep in memory. */ }
@@ -197,10 +228,12 @@
   window.addEventListener('resize', setSpeed);
   let cached = null;
   try { cached = validate(JSON.parse(localStorage.getItem(CACHE_KEY))); } catch { /* Invalid cache must not prevent loading the bundled news. */ }
+  try { liveFeed = validate(JSON.parse(localStorage.getItem('htf-news-direct-v1'))); } catch { /* Optional cache. */ }
   const bundled = validate(window.NEWS_FEED);
   render(cached?.items.length ? cached : bundled);
   if (cached?.items.length) accept(bundled);
   remember();
   refresh();
   setInterval(refresh, 5 * 60 * 1000);
+  setInterval(updateStatus, 60000);
 })();

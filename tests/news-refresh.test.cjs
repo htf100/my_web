@@ -2,7 +2,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const http=require('node:http'),fs=require('node:fs'),assert=require('node:assert/strict'),path=require('node:path');
 const root=path.resolve(__dirname,'..');
 (async()=>{
- const server=http.createServer((req,res)=>{const name=req.url.split('?')[0].replace(/^\/my_web\//,'')||'index.html';if(!['index.html','styles.css','app.js','model.js','commands.js','news.js','news-data.js','news.json'].includes(name)){res.writeHead(404).end();return;}res.setHeader('Content-Type',name.endsWith('.js')?'text/javascript':name.endsWith('.css')?'text/css':name.endsWith('.json')?'application/json':'text/html');res.end(fs.readFileSync(path.join(root,name)))});
+ const server=http.createServer((req,res)=>{const name=req.url.split('?')[0].replace(/^\/my_web\//,'')||'index.html';if(!['index.html','styles.css','app.js','model.js','commands.js','news.js','live-news.js','news-data.js','news.json'].includes(name)){res.writeHead(404).end();return;}res.setHeader('Content-Type',name.endsWith('.js')?'text/javascript':name.endsWith('.css')?'text/css':name.endsWith('.json')?'application/json':'text/html');res.end(fs.readFileSync(path.join(root,name)))});
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
  try{
@@ -13,9 +13,10 @@ const root=path.resolve(__dirname,'..');
   updated.items[0]={...original.items[0],title:'新的国际新闻测试',url:'https://www.bbc.com/news/articles/refresh-test'};
   let response=original,status=200,release=null,hold=false,calls=0;
   await page.route('**/news.json',async route=>{calls++;if(hold)await new Promise(resolve=>{release=resolve});await route.fulfill({status,contentType:'application/json',body:JSON.stringify(response)})});
-  await page.goto('http://127.0.0.1:'+server.address().port+'/my_web/',{waitUntil:'networkidle'});
+  await page.route('https://api-one.wallstcn.com/**', r=>r.abort());await page.goto('http://127.0.0.1:'+server.address().port+'/my_web/',{waitUntil:'networkidle'});
   const refresh=page.getByRole('button',{name:'刷新热点新闻',exact:true});
   const headlines=()=>page.locator('#news-list .news-headline').allTextContents();
+  await page.evaluate(()=>{const select=document.querySelector('#news-order');select.value='priority';select.dispatchEvent(new Event('change'))});
   const oldTitles=await headlines();
   const mark=()=>page.evaluate(()=>{window.oldTicker=document.querySelector('.news-group')});
   const preserved=async()=>{assert.deepEqual(await headlines(),oldTitles);assert.equal(await page.evaluate(()=>window.oldTicker===document.querySelector('.news-group')),true)};
@@ -26,7 +27,7 @@ const root=path.resolve(__dirname,'..');
   // A successful response with only a new fetch timestamp does not restart the ticker.
   response={...original,fetchedAt:updated.fetchedAt};hold=false;release();
   await page.waitForFunction(()=>!document.querySelector('#news-refresh').disabled);await preserved();
-  assert.match(await page.locator('#news-refresh-status').textContent(),/暂无新新闻/);
+  assert.match(await page.locator('#news-refresh-status').textContent(),/财经直连失败/);
   for(const scenario of [
    {status:503,response:original},
    {status:200,response:{...updated,items:[]}},

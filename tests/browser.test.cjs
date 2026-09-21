@@ -2,13 +2,13 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const http=require('node:http'),fs=require('node:fs'),assert=require('node:assert/strict');
 const root=require('node:path').resolve(__dirname,'..');
 (async()=>{
- const server=http.createServer((req,res)=>{const name=req.url.split('?')[0].replace(/^\/commands\//,'')||'index.html';if(!['index.html','styles.css','app.js','model.js','commands.js','news.js','news-data.js','news.json'].includes(name)){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',name.endsWith('.js')?'text/javascript':name.endsWith('.css')?'text/css':name.endsWith('.json')?'application/json':'text/html');res.end(fs.readFileSync(root+'/'+name))});
+ const server=http.createServer((req,res)=>{const name=req.url.split('?')[0].replace(/^\/commands\//,'')||'index.html';if(!['index.html','styles.css','app.js','model.js','commands.js','news.js','live-news.js','news-data.js','news.json'].includes(name)){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',name.endsWith('.js')?'text/javascript':name.endsWith('.css')?'text/css':name.endsWith('.json')?'application/json':'text/html');res.end(fs.readFileSync(root+'/'+name))});
  await new Promise(r=>server.listen(0,'127.0.0.1',r));
  const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
  try {
  const origin='http://127.0.0.1:'+server.address().port;
  const context=await browser.newContext({viewport:{width:1600,height:1080},permissions:['clipboard-read','clipboard-write'],acceptDownloads:true});const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
- await page.goto(origin+'/commands/');await page.waitForSelector('.card');assert.equal(await page.locator('.card').count(),45);const seedCount=await page.evaluate(()=>window.COMMAND_LIBRARY.commands.length);assert.equal(await page.locator('.column').count(),3);
+ await page.route('https://api-one.wallstcn.com/**', r=>r.abort());await page.goto(origin+'/commands/');await page.waitForSelector('.card');assert.equal(await page.locator('.card').count(),45);const seedCount=await page.evaluate(()=>window.COMMAND_LIBRARY.commands.length);assert.equal(await page.locator('.column').count(),3);
  await page.screenshot({path:root+'/preview-desktop.png'});
  await page.locator('[data-count="4"]').click();assert.equal(await page.locator('.column').count(),4);
  await page.locator('[data-count="2"]').click();await page.getByLabel('第 1 栏分类',{exact:true}).selectOption('mosh');await page.reload();assert.equal(await page.locator('.column').count(),2);assert.equal(await page.getByLabel('第 1 栏分类',{exact:true}).inputValue(),'mosh');
