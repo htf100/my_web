@@ -7,19 +7,19 @@
   <meta name="description" content="可分栏的个人命令工作台，多级分类、一键复制和本地编辑。">
   <title>命令工作台 · HTF</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23111c30'/%3E%3Cpath d='m15 20 12 12-12 12m19 0h15' fill='none' stroke='%235ad4bd' stroke-width='5'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="./styles.css?v=sidebar-2">
+  <link rel="stylesheet" href="./styles.css?v=finance-1">
   <script src="./commands.js?v=python-launcher-1" defer></script>
   <script src="./model.js?v=htf-pack-1" defer></script>
   <script src="./app.js?v=sidebar-2" defer></script>
   <script src="./news-data.js" defer></script>
-  <script src="./news.js?v=copy-news-2" defer></script>
+  <script src="./news.js?v=finance-1" defer></script>
 </head>
 <body>
   <a class="skip" href="#main">跳到工作台</a>
-  <section id="news-strip" class="news-strip" aria-label="国际热点新闻">
-    <div class="news-label"><strong>◎ 国际热点</strong><span id="news-updated">正在读取新闻</span></div>
+  <section id="news-strip" class="news-strip" aria-label="国际与财经热点新闻">
+    <div class="news-label"><strong>◎ 环球 · 财经</strong><span id="news-updated">正在读取新闻</span></div>
     <div id="news-viewport" class="news-viewport" aria-hidden="true"><div id="news-track" class="news-track"></div></div>
-    <div class="news-controls"><button id="news-refresh" type="button" title="读取网站最新新闻；来源每小时更新" aria-label="刷新热点新闻">刷新</button><button id="news-pause" type="button" aria-pressed="false" aria-label="暂停新闻滚动">暂停</button><button id="news-list-open" type="button" aria-haspopup="dialog">新闻列表 ↗</button></div>
+    <div class="news-controls"><select id="news-scope" aria-label="新闻范围"><option value="all">综合</option><option value="finance">财经</option><option value="world">国际</option></select><button id="news-refresh" type="button" title="读取网站最新新闻；来源每小时更新" aria-label="刷新热点新闻">刷新</button><button id="news-pause" type="button" aria-pressed="false" aria-label="暂停新闻滚动">暂停</button><button id="news-list-open" type="button" aria-haspopup="dialog">新闻列表 ↗</button></div>
     <span id="news-refresh-status" class="news-refresh-status" role="status" aria-live="polite"></span>
   </section>
   <aside class="sidebar">
@@ -43,7 +43,7 @@
   </main>
   <dialog id="modal" aria-labelledby="dialog-title"><form id="dialog-form"><div class="dialog-header"><h2 id="dialog-title"></h2><button id="dialog-close" type="button" aria-label="关闭弹窗">×</button></div><div id="dialog-body"></div><p id="dialog-error" role="alert" hidden></p><div class="dialog-footer"><button id="dialog-cancel" type="button">取消</button><button id="dialog-submit" class="primary" type="submit">保存</button></div></form></dialog>
   <input id="import-file" type="file" accept="application/json,.json" hidden>
-  <dialog id="news-dialog" aria-labelledby="news-dialog-title"><div class="dialog-header"><h2 id="news-dialog-title">国际热点</h2><button id="news-list-close" type="button" aria-label="关闭新闻列表">×</button></div><div class="news-dialog-content"><p id="news-summary" class="dialog-help"></p><ul id="news-list"></ul><p id="news-sources" class="news-sources"></p></div></dialog>
+  <dialog id="news-dialog" aria-labelledby="news-dialog-title"><div class="dialog-header"><h2 id="news-dialog-title">环球与财经热点</h2><button id="news-list-close" type="button" aria-label="关闭新闻列表">×</button></div><div class="news-dialog-content"><div class="news-filterbar"><div id="news-filters" class="segmented" role="group" aria-label="新闻分类"><button type="button" data-scope="all" aria-pressed="true">全部</button><button type="button" data-scope="finance" aria-pressed="false">财经</button><button type="button" data-scope="world" aria-pressed="false">国际</button></div><select id="news-order" aria-label="新闻排序"><option value="priority">重点优先</option><option value="latest">最新发布</option></select></div><p id="news-summary" class="dialog-help"></p><ul id="news-list"></ul><p id="news-sources" class="news-sources"></p></div></dialog>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <noscript>请启用 JavaScript，以查看、搜索和复制命令。</noscript>
 </body>

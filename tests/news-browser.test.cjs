@@ -8,14 +8,14 @@ const root=path.resolve(__dirname,'..');
  try{
   const context=await browser.newContext({viewport:{width:1440,height:1000}}),page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
   const url='http://127.0.0.1:'+server.address().port+'/my_web/';
-  await page.goto(url,{waitUntil:'networkidle'});assert.equal(await page.locator('.card').count(),45);assert.equal(await page.locator('#news-list li').count(),12);assert.equal(await page.locator('.news-group').count(),2);
+  await page.goto(url,{waitUntil:'networkidle'});assert.equal(await page.locator('.card').count(),45);assert.equal(await page.locator('#news-list li').count(),JSON.parse(fs.readFileSync(path.join(root,'news.json'))).items.length);assert.equal(await page.locator('.news-group').count(),2);
   await page.mouse.move(900,400);const transform=()=>page.locator('#news-track').evaluate(n=>getComputedStyle(n).transform);
   const a=await transform();await page.waitForTimeout(250);assert.notEqual(await transform(),a,'ticker moves');
   await page.locator('#news-pause').click();const b=await transform();await page.waitForTimeout(250);assert.equal(await transform(),b,'manual pause');
   await page.reload({waitUntil:'networkidle'});assert.equal(await page.locator('#news-pause').getAttribute('aria-pressed'),'true');await page.locator('#news-pause').click();
   await page.locator('#news-viewport').hover();const c=await transform();await page.waitForTimeout(250);assert.equal(await transform(),c,'hover pause');
   await page.locator('#news-list-open').click();assert.equal(await page.locator('#news-dialog').isVisible(),true);
-  const link=page.locator('#news-list a').first(),href=await link.getAttribute('href');assert.match(href,/^https:\/\/[^/]*(bbc\.com|bbc\.co\.uk|dw\.com)\//);assert.equal(await link.getAttribute('target'),'_blank');assert.match(await link.getAttribute('rel'),/noopener/);
+  const link=page.locator('#news-list a').first(),href=await link.getAttribute('href');assert.match(href,/^https:\/\/[^/]*(bbc\.com|bbc\.co\.uk|dw\.com|wallstreetcn\.com|chinanews\.com\.cn|chinanews\.com|federalreserve\.gov|ecb\.europa\.eu)\//);assert.equal(await link.getAttribute('target'),'_blank');assert.match(await link.getAttribute('rel'),/noopener/);
   await context.route('https://**/*',route=>route.fulfill({status:200,contentType:'text/html',body:'<title>Publisher destination</title>'}));const popupPromise=page.waitForEvent('popup');await link.click();const popup=await popupPromise;await popup.waitForLoadState();assert.equal(popup.url(),href);await popup.close();
   await page.locator('#news-list-close').click();await page.emulateMedia({reducedMotion:'reduce'});await page.waitForFunction(()=>document.querySelector('#news-pause').disabled);assert.equal(await page.locator('#news-track').evaluate(n=>getComputedStyle(n).animationName),'none');assert.equal(await page.locator('#news-pause').isDisabled(),true);
   await page.setViewportSize({width:320,height:740});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await page.screenshot({path:path.join(root,'preview-news-mobile.png')});

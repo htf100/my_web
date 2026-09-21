@@ -26,15 +26,28 @@
 
 示例中的 `/path/to/` 和“你的日志文件”需要替换；`/home/ubuntu/disk/htf` 是当前 Ubuntu 目录布局。测量参数按本地脚本核对，未执行测量、训练、安装或上传数据。训练与图像处理建议分别使用各自虚拟环境；脚本版本更新后，以项目当前配置和 `--help` 为准。
 
-## 顶部国际热点
+## 顶部环球与财经热点
 
-页面最上方是一条可点击的滚动新闻栏。标题在新标签页打开媒体原文，保留来源标识和发布时间；不转载正文。默认最多 12 条，以中文为主，按最近发布时间排序，不是热度评分榜。
+透明弹幕保留国际新闻，新增财经来源。右上角可选择“综合 / 财经 / 国际”，此选择同步新闻列表并记住偏好。列表支持“重点优先 / 最新发布”，显示主题、来源、原始发布时间和可点击原文。仅展示标题，不转载正文。快照目前每源限额合计最多 35 条，存储上限 48 条；综合弹幕精选最多 8 条财经和 6 条国际，完整内容在新闻列表查看。
+
+财经覆盖宏观政策、基金与 ETF、全球市场、汇率与商品、产业公司。近期 72 小时内的宏观政策及来源标记重点消息优先，其余按发布时间排序；各财经来源先保留不同主题，再补充其他标题，避免快讯淹没重要内容。“重点”是规则筛选，不是实时热度排名，也不保证穷尽所有重大事件。来源没有发布相关内容时，不填充或编造新闻。
 
 新闻来源：
 
-- [BBC 中文 RSS](https://feeds.bbci.co.uk/zhongwen/simp/rss.xml)：最多 5 条。
-- [德国之声中文 RSS](https://rss.dw.com/rdf/rss-chi-all)：最多 5 条。
-- [BBC World RSS](https://feeds.bbci.co.uk/news/world/rss.xml)：最多 2 条。
+| 来源 | 获取方式 | 每源上限 |
+| --- | --- | --- |
+| [BBC 中文](https://feeds.bbci.co.uk/zhongwen/simp/rss.xml) | 官方 RSS | 5 |
+| [德国之声中文](https://rss.dw.com/rdf/rss-chi-all) | 官方 RSS | 5 |
+| [BBC World](https://feeds.bbci.co.uk/news/world/rss.xml) | 官方 RSS | 2 |
+| [华尔街见闻](https://wallstreetcn.com/live/global) | 公开快讯接口，仅取有标题的财经/重点条目 | 10 |
+| [中新网财经](https://www.chinanews.com.cn/rss/finance.xml) | 官方 RSS | 6 |
+| [BBC 商业](https://feeds.bbci.co.uk/news/business/rss.xml) | 官方 RSS | 3 |
+| [美联储货币政策](https://www.federalreserve.gov/feeds/press_monetary.xml) | 官方 RSS | 2 |
+| [欧洲央行](https://www.ecb.europa.eu/rss/press.html) | 官方 RSS | 2 |
+
+用户提出参考养基宝。经查看[养基宝公开官网](https://web.yangjibao.com/)，未找到完整资讯供应商清单或可用的公开资讯接入文档，因此不声称上表与养基宝同源，不调用登录或付费接口。这里采用可直接核实的媒体/机构公开来源，参考基金使用者关注的宏观与跨市场主题。验证日期：2026-09-21。
+
+新增数据源在构建端获取，浏览器仅读取同站快照；无需用户提供密钥。公共接口可能调整，失败时不以空数据覆盖旧新闻。有效但近期没有公告的央行 RSS 视为正常空源，不长期报成连接故障。
 
 鼠标悬停或点击“暂停”可停止滚动；“新闻列表”提供完整标题、发布时间和来源链接，也方便键盘访问。在系统开启“减少动态效果”时自动改为静态横向浏览。
 
@@ -93,7 +106,7 @@ python -m http.server 8080 --bind 127.0.0.1
 
 网站地址：<https://htf100.github.io/my_web/>
 
-仓库包含 `.github/workflows/pages.yml`。向 `main` 分支推送后，GitHub Actions 会检查 JavaScript、运行数据层测试，抓取最新 RSS 新闻，并只发布网站所需的静态文件。原始笔记、旧版备份、截图和 ZIP 留在本地，不提交也不发布。
+仓库包含 `.github/workflows/pages.yml`。向 `main` 分支推送后，GitHub Actions 会检查 JavaScript、运行数据层测试，抓取最新国际与财经新闻，并只发布网站所需的静态文件。原始笔记、旧版备份、截图和 ZIP 留在本地，不提交也不发布。
 
 仓库 **Settings → Pages → Build and deployment → Source** 应设为 **GitHub Actions**。可在仓库 Actions 页面查看部署进度或手动运行部署流程。
 
@@ -118,6 +131,8 @@ git push origin main
 - `app.js`：界面交互、密令、本地保存、导入导出。
 - `backups/v1/`：升级前的第一版文件。
 - `tests/model.test.cjs`：分类树、异常备份和移动操作验证。
+- `tests/test_news.py`：国际/财经源解析、主题覆盖、优先级、异常来源及缓存保留验证。
+- `tests/finance-browser.test.cjs`：财经筛选、重点排序、偏好保存和移动端验证，需要 Playwright。
 
 JSON 备份格式为 `{ "format": "htf-command-desk", "version": 2, "library": { "version": 2, "categories": [...], "commands": [...] } }`。分类用 `parent: null` 表示一级标题，其他级别填上级分类 ID。界面通过文本节点显示输入内容，不执行用户添加的 HTML/JavaScript。
 
