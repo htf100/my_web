@@ -127,14 +127,14 @@ window.COMMAND_LIBRARY = {
       "parent": "troubleshoot-root"
     },
     {
-      "id": "htf-projects",
-      "label": "HTF 项目常用",
+      "id": "htf-env",
+      "label": "Python 环境",
       "parent": null
     },
     {
-      "id": "htf-env",
-      "label": "Python 环境",
-      "parent": "htf-projects"
+      "id": "htf-venv",
+      "label": "Python 虚拟环境",
+      "parent": "htf-env"
     },
     {
       "id": "htf-conda",
@@ -144,7 +144,7 @@ window.COMMAND_LIBRARY = {
     {
       "id": "htf-vision",
       "label": "图像测量 · DIM",
-      "parent": "htf-projects"
+      "parent": null
     },
     {
       "id": "htf-inspect",
@@ -159,7 +159,7 @@ window.COMMAND_LIBRARY = {
     {
       "id": "htf-learning",
       "label": "评论分类学习",
-      "parent": "htf-projects"
+      "parent": null
     },
     {
       "id": "htf-data",
@@ -174,12 +174,32 @@ window.COMMAND_LIBRARY = {
     {
       "id": "htf-ops",
       "label": "资源与备份",
-      "parent": "htf-projects"
+      "parent": null
+    },
+    {
+      "id": "htf-resource",
+      "label": "资源检查",
+      "parent": "htf-ops"
+    },
+    {
+      "id": "htf-backup",
+      "label": "备份与大文件",
+      "parent": "htf-ops"
     },
     {
       "id": "htf-web",
       "label": "网站与 Git",
-      "parent": "htf-projects"
+      "parent": null
+    },
+    {
+      "id": "htf-web-local",
+      "label": "本地检查",
+      "parent": "htf-web"
+    },
+    {
+      "id": "htf-web-publish",
+      "label": "发布与状态",
+      "parent": "htf-web"
     }
   ],
   "commands": [
@@ -725,7 +745,7 @@ window.COMMAND_LIBRARY = {
     },
     {
       "id": "htf-env-01",
-      "category": "htf-env",
+      "category": "htf-venv",
       "title": "确认当前 Python 与依赖",
       "description": "定位运行脚本时实际使用的解释器。",
       "code": "python -c 'import sys; print(sys.executable); print(sys.version)'\npython -m pip --version\npython -m pip check",
@@ -737,7 +757,7 @@ window.COMMAND_LIBRARY = {
     },
     {
       "id": "htf-env-02",
-      "category": "htf-env",
+      "category": "htf-venv",
       "title": "建立图像测量独立环境",
       "description": "使用现有 DIM-030-031 的依赖版本，并补充孔2入口需要的 Pillow。",
       "code": "cd /home/ubuntu/disk/htf/maoyu &&\npython -m venv .venv-dim &&\nsource .venv-dim/bin/activate &&\npython -m pip install -r DIM-030-031/requirements.txt Pillow",
@@ -749,7 +769,7 @@ window.COMMAND_LIBRARY = {
     },
     {
       "id": "htf-env-03",
-      "category": "htf-env",
+      "category": "htf-venv",
       "title": "建立评论训练独立环境",
       "description": "与图像算法隔离，按学习项目的 requirements.txt 安装。",
       "code": "cd /home/ubuntu/disk/htf/self_learning &&\npython -m venv .venv &&\nsource .venv/bin/activate &&\npython -m pip install -r requirements.txt",
@@ -1085,7 +1105,7 @@ window.COMMAND_LIBRARY = {
     },
     {
       "id": "htf-ops-01",
-      "category": "htf-ops",
+      "category": "htf-resource",
       "title": "检查磁盘与各项目占用",
       "description": "先找出图片、模型和结果目录占用的空间。",
       "code": "df -h /home/ubuntu/disk/htf\ndu -h --max-depth=1 /home/ubuntu/disk/htf | sort -h",
@@ -1097,7 +1117,7 @@ window.COMMAND_LIBRARY = {
     },
     {
       "id": "htf-ops-02",
-      "category": "htf-ops",
+      "category": "htf-resource",
       "title": "查看当前用户进程与内存",
       "description": "发现训练或图像处理任务的资源占用。",
       "code": "free -h\nps -u \"$(id -un)\" -o pid,etime,%cpu,%mem,comm --sort=-%mem | head -n 20",
@@ -1109,7 +1129,7 @@ window.COMMAND_LIBRARY = {
     },
     {
       "id": "htf-ops-03",
-      "category": "htf-ops",
+      "category": "htf-backup",
       "title": "给学习脚本做一份独立备份",
       "description": "备份 Python 源码、依赖清单和说明，不打包数据与模型。",
       "code": "cd /home/ubuntu/disk/htf/self_learning &&\nmkdir -p /home/ubuntu/disk/htf/backups &&\ntar -czf \"/home/ubuntu/disk/htf/backups/self_learning_code_$(date +%Y%m%d_%H%M%S).tar.gz\" \\\n  -- *.py requirements.txt README.md",
@@ -1121,7 +1141,7 @@ window.COMMAND_LIBRARY = {
     },
     {
       "id": "htf-ops-04",
-      "category": "htf-ops",
+      "category": "htf-backup",
       "title": "查找超过 200 MB 的大文件",
       "description": "定位模型、压缩包和大数据文件。",
       "code": "find /home/ubuntu/disk/htf -type d \\( -name .git -o -name .venv -o -name .venv-dim -o -name node_modules \\) -prune -o \\\n  -type f -size +200M -printf '%s\\t%p\\n' | sort -nr | head -n 30",
@@ -1133,7 +1153,7 @@ window.COMMAND_LIBRARY = {
     },
     {
       "id": "htf-web-01",
-      "category": "htf-web",
+      "category": "htf-web-local",
       "title": "本地预览命令网站",
       "description": "在本机地址启动静态预览。",
       "code": "cd /home/ubuntu/disk/htf/web &&\npython -m http.server 8000 --bind 127.0.0.1",
@@ -1145,7 +1165,7 @@ window.COMMAND_LIBRARY = {
     },
     {
       "id": "htf-web-02",
-      "category": "htf-web",
+      "category": "htf-web-local",
       "title": "检查网站代码与命令库",
       "description": "修改后先验证 JavaScript 语法、分类结构与新闻采集测试。",
       "code": "cd /home/ubuntu/disk/htf/web &&\nnode --check app.js && node --check commands.js && node --check news.js &&\nnode --test tests/model.test.cjs &&\npython -m unittest discover -s tests -p 'test_*.py'",
@@ -1157,7 +1177,7 @@ window.COMMAND_LIBRARY = {
     },
     {
       "id": "htf-web-03",
-      "category": "htf-web",
+      "category": "htf-web-local",
       "title": "检查 Git 改动与最近提交",
       "description": "提交前确认有哪些文件发生变化。",
       "code": "git -C /home/ubuntu/disk/htf/web status --short\ngit -C /home/ubuntu/disk/htf/web diff --stat\ngit -C /home/ubuntu/disk/htf/web log -5 --oneline",
@@ -1169,7 +1189,7 @@ window.COMMAND_LIBRARY = {
     },
     {
       "id": "htf-web-04",
-      "category": "htf-web",
+      "category": "htf-web-publish",
       "title": "提交并发布网站页面修改",
       "description": "推送 main 后由现有 GitHub Actions 部署。",
       "code": "cd /home/ubuntu/disk/htf/web &&\ngit add index.html styles.css app.js model.js commands.js news.js &&\ngit diff --cached --stat &&\ngit commit -m 'Update command desk' &&\ngit push origin main",
@@ -1181,7 +1201,7 @@ window.COMMAND_LIBRARY = {
     },
     {
       "id": "htf-web-05",
-      "category": "htf-web",
+      "category": "htf-web-publish",
       "title": "查看 GitHub Pages 发布状态",
       "description": "检查最近几次自动部署是否成功。",
       "code": "cd /home/ubuntu/disk/htf/web &&\nGH_CONFIG_DIR=\"$PWD/.git/gh-auth\" gh run list --repo htf100/my_web --limit 5",

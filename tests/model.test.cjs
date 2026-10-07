@@ -4,8 +4,8 @@ const fs=require('node:fs'),vm=require('node:vm');
 const M=require('../model.js');
 const ctx={window:{}};vm.runInNewContext(fs.readFileSync(require.resolve('../commands.js'),'utf8'),ctx);
 const seed=()=>M.validate(ctx.window.COMMAND_LIBRARY);
-test('preserves every source command across hierarchical categories',()=>{const l=seed();assert.equal(l.commands.length,84);assert.equal(l.categories.length,36);assert.equal(M.ordered(l).length,36);assert.equal(M.descendants(l,'server-root').size,7);assert.equal(M.path(l,'mosh'),'服务器 / 连接与环境 / Mosh 远程连接');});
-test('includes the server Conda activation command with the supplied path',()=>{const l=seed();const command=l.commands.find(c=>c.id==='htf-conda-01');assert.equal(M.path(l,command.category),'HTF 项目常用 / Python 环境 / Conda · maskdino310');assert.equal(command.code,'source "/mnt/sda1/htf/software/miniforge3/etc/profile.d/conda.sh"\nconda activate maskdino310');});
+test('preserves every source command across hierarchical categories',()=>{const l=seed();assert.equal(l.commands.length,84);assert.equal(l.categories.length,40);assert.equal(M.ordered(l).length,40);assert.equal(M.descendants(l,'server-root').size,7);assert.equal(M.path(l,'mosh'),'服务器 / 连接与环境 / Mosh 远程连接');assert.deepEqual(Array.from(l.categories.filter(c=>c.parent===null&&c.id.startsWith('htf-')),c=>c.id),['htf-env','htf-vision','htf-learning','htf-ops','htf-web']);});
+test('includes the server Conda activation command with the supplied path',()=>{const l=seed();const command=l.commands.find(c=>c.id==='htf-conda-01');assert.equal(M.path(l,command.category),'Python 环境 / Conda · maskdino310');assert.equal(command.code,'source "/mnt/sda1/htf/software/miniforge3/etc/profile.d/conda.sh"\nconda activate maskdino310');});
 test('rejects cycles, excessive depth, duplicates, and orphan commands',()=>{
  let l=seed();l.categories[0].parent='mosh';assert.throws(()=>M.validate(l),/自身/);
  l=seed();l.categories.push({...l.categories[0]});assert.throws(()=>M.validate(l),/重复/);
@@ -25,4 +25,31 @@ test('merges only missing project entries without overwriting edits or restoring
  const merged=M.mergeMissing(old,pack);assert.equal(merged.commands.length,83);assert.equal(merged.commands.find(c=>c.id==='connect-01').code,'my custom command');assert.equal(merged.commands.some(c=>c.id==='connect-02'),false);assert.equal(JSON.stringify(old),before);
  merged.commands.find(c=>c.id==='htf-env-01').code='customized project command';merged.categories.find(c=>c.id==='htf-env').label='my environment';
  assert.deepEqual(M.mergeMissing(merged,pack),merged);
+});
+test('reorganizes the old project root while keeping custom content and edited commands',()=>{
+ const template=seed(),old=seed();
+ old.categories.push({id:'htf-projects',label:'HTF 项目常用',parent:null},{id:'my-project',label:'我的项目',parent:'htf-projects'});
+ for(const category of old.categories)if(['htf-env','htf-vision','htf-learning','htf-ops','htf-web'].includes(category.id))category.parent='htf-projects';
+ old.categories=old.categories.filter(c=>!['htf-venv','htf-resource','htf-backup','htf-web-local','htf-web-publish'].includes(c.id));
+ for(const command of old.commands){
+  if(/^htf-env-0[1-3]$/.test(command.id))command.category='htf-env';
+  if(/^htf-ops-0[1-4]$/.test(command.id))command.category='htf-ops';
+  if(/^htf-web-0[1-5]$/.test(command.id))command.category='htf-web';
+ }
+ old.commands.find(c=>c.id==='htf-env-01').code='my edited Python check';
+ old.commands.find(c=>c.id==='htf-web-02').category='htf-env';
+ old.commands.push({...old.commands[0],id:'my-custom',category:'my-project',title:'自建命令'});
+ const before=JSON.stringify(old),migrated=M.reorganizeProjectCategories(old,template);
+ assert.equal(JSON.stringify(old),before);
+ assert.equal(migrated.commands.length,old.commands.length);
+ assert.equal(migrated.commands.find(c=>c.id==='htf-env-01').code,'my edited Python check');
+ assert.equal(migrated.commands.find(c=>c.id==='htf-env-01').category,'htf-venv');
+ assert.equal(migrated.commands.find(c=>c.id==='htf-ops-03').category,'htf-backup');
+ assert.equal(migrated.commands.find(c=>c.id==='htf-web-04').category,'htf-web-publish');
+ assert.equal(migrated.commands.find(c=>c.id==='htf-web-02').category,'htf-env');
+ assert.equal(migrated.commands.find(c=>c.id==='my-custom').category,'my-project');
+ assert.ok(migrated.categories.some(c=>c.id==='htf-projects'));
+ assert.deepEqual(M.reorganizeProjectCategories(migrated,template),migrated);
+ old.categories=old.categories.filter(c=>c.id!=='my-project');old.commands=old.commands.filter(c=>c.id!=='my-custom');
+ assert.equal(M.reorganizeProjectCategories(old,template).categories.some(c=>c.id==='htf-projects'),false);
 });

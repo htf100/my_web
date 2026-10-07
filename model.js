@@ -76,7 +76,47 @@
       commands: [...current.commands, ...pack.commands.filter(c => !commands.has(c.id))],
     });
   }
-  const api = { validate, descendants, path, ordered, move, mergeMissing, MAX_DEPTH };
+  function reorganizeProjectCategories(library, preset) {
+    const current = validate(library), template = validate(preset);
+    const roots = ['htf-env', 'htf-vision', 'htf-learning', 'htf-ops', 'htf-web'];
+    const legacyRoot = current.categories.find(c => c.id === 'htf-projects');
+    if (!legacyRoot) return current;
+    if (!current.categories.some(c => roots.includes(c.id) && c.parent === legacyRoot.id)) {
+      if (!current.categories.some(c => c.parent === legacyRoot.id) && !current.commands.some(c => c.category === legacyRoot.id)) {
+        current.categories = current.categories.filter(c => c.id !== legacyRoot.id);
+      }
+      return validate(current);
+    }
+
+    for (const category of current.categories) {
+      if (roots.includes(category.id) && category.parent === legacyRoot.id) category.parent = null;
+    }
+    const templateCategories = new Map(template.categories.map(c => [c.id, c]));
+    for (const id of ['htf-venv', 'htf-resource', 'htf-backup', 'htf-web-local', 'htf-web-publish']) {
+      const category = templateCategories.get(id);
+      if (category && current.categories.some(c => c.id === category.parent) && !current.categories.some(c => c.id === id)) {
+        current.categories.push({ ...category });
+      }
+    }
+    const moves = [
+      ['htf-env', 'htf-venv', ['htf-env-01', 'htf-env-02', 'htf-env-03']],
+      ['htf-ops', 'htf-resource', ['htf-ops-01', 'htf-ops-02']],
+      ['htf-ops', 'htf-backup', ['htf-ops-03', 'htf-ops-04']],
+      ['htf-web', 'htf-web-local', ['htf-web-01', 'htf-web-02', 'htf-web-03']],
+      ['htf-web', 'htf-web-publish', ['htf-web-04', 'htf-web-05']],
+    ];
+    for (const [oldCategory, newCategory, ids] of moves) {
+      if (!current.categories.some(c => c.id === newCategory)) continue;
+      for (const command of current.commands) {
+        if (ids.includes(command.id) && command.category === oldCategory) command.category = newCategory;
+      }
+    }
+    if (!current.categories.some(c => c.parent === legacyRoot.id) && !current.commands.some(c => c.category === legacyRoot.id)) {
+      current.categories = current.categories.filter(c => c.id !== legacyRoot.id);
+    }
+    return validate(current);
+  }
+  const api = { validate, descendants, path, ordered, move, mergeMissing, reorganizeProjectCategories, MAX_DEPTH };
   if (typeof module !== 'undefined') module.exports = api;
   else root.CommandModel = api;
 })(typeof window !== 'undefined' ? window : globalThis);

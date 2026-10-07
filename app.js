@@ -35,6 +35,14 @@
       record = JSON.parse(snapshot);
       if (!record || record.version !== 2 || !record.lock || typeof record.lock.hash !== 'string' || typeof record.lock.salt !== 'string') throw new Error('保存格式不正确');
       library = M.validate(record.library);
+      const reorganized = M.reorganizeProjectCategories(library, window.COMMAND_LIBRARY);
+      if (JSON.stringify(reorganized) !== JSON.stringify(library)) {
+        const updated = { ...record, library: reorganized, updatedAt: new Date().toISOString() };
+        const serialized = JSON.stringify(updated);
+        if (localStorage.getItem(KEY) !== snapshot) throw new Error('命令库已在其他标签页更新');
+        localStorage.setItem(KEY, serialized);
+        record = updated; snapshot = serialized; library = reorganized;
+      }
     }
     const probe = KEY + '-probe'; localStorage.setItem(probe, '1'); localStorage.removeItem(probe);
   } catch {
@@ -50,7 +58,10 @@
     const saved = JSON.parse(localStorage.getItem(VIEW_KEY));
     if (saved && [1, 2, 3, 4].includes(saved.count) && Array.isArray(saved.panels)) {
       view.count = saved.count;
-      view.panels = Array.from({ length: 4 }, (_, i) => typeof saved.panels[i] === 'string' ? saved.panels[i] : 'all');
+      view.panels = Array.from({ length: 4 }, (_, i) => {
+        const id = saved.panels[i];
+        return id === 'all' || library.categories.some(c => c.id === id) ? id : 'all';
+      });
       view.collapsed = Array.isArray(saved.collapsed) ? saved.collapsed.filter(id => typeof id === 'string') : [];
     }
   } catch { /* Read-only use remains available. */ }
@@ -469,7 +480,7 @@
     const count = projectPack.commands.filter(c => !library.commands.some(existing => existing.id === c.id)).length;
     const body = showDialog('补充 HTF 项目命令', `添加 ${count} 条`, () => {
       commit(draft => Object.assign(draft, M.mergeMissing(draft, projectPack)), `已补充 ${count} 条项目命令，可撤销`);
-      view.panels[active] = 'htf-projects'; saveView(); renderBoard();
+      view.panels[active] = 'htf-env'; saveView(); renderBoard();
     });
     body.append(el('p', 'dialog-help', `将添加缺少的 ${count} 条命令，涵盖 Python 与 Conda 环境、图像测量、数据清洗与训练、资源备份及网站维护。保留你已有的命令、编辑和分类，不恢复此前删除的旧版预置命令。`));
     body.append(el('p', 'dialog-help', '命令中的 /path/to/ 是待替换路径。这里只加入命令库，不会安装依赖、运行算法或启动训练。'));
@@ -490,7 +501,7 @@
       checkEdit(); if (file.size > 8 * 1024 * 1024) throw new Error('备份过大，请选择小于 8 MB 的 JSON 文件。');
       const data = JSON.parse(await file.text());
       if (data.format && (data.format !== 'htf-command-desk' || data.version !== 2)) throw new Error('不支持此备份格式或版本。');
-      const imported = M.validate(data.library || data);
+      const imported = M.reorganizeProjectCategories(data.library || data, window.COMMAND_LIBRARY);
       const body = showDialog('导入备份', '替换并导入', () => commit(draft => { draft.categories = imported.categories; draft.commands = imported.commands; }, '备份已导入，密令保持不变'));
       body.append(el('p', 'dialog-help', `备份包含 ${imported.categories.length} 个分类、${imported.commands.length} 条命令。将替换当前 ${library.commands.length} 条命令；可撤销本次导入。`), button('先导出当前备份', exportLibrary));
     } catch (error) { notify(`导入失败：${error.message}`); }
