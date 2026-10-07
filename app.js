@@ -5,6 +5,7 @@
   const KEY = 'htf-command-desk-v2';
   const VIEW_KEY = 'htf-command-desk-layout-v2';
   const PINNED_KEY = 'htf-command-desk-pinned-copy-v1:' + new URL('.', location.href).pathname;
+  const CONDA_CREATE_MIGRATION = 'conda-create-v1';
   const clone = value => JSON.parse(JSON.stringify(value));
   const uid = () => 'id-' + crypto.randomUUID();
   let library = M.validate(window.COMMAND_LIBRARY);
@@ -35,13 +36,22 @@
       record = JSON.parse(snapshot);
       if (!record || record.version !== 2 || !record.lock || typeof record.lock.hash !== 'string' || typeof record.lock.salt !== 'string') throw new Error('保存格式不正确');
       library = M.validate(record.library);
-      const reorganized = M.reorganizeProjectCategories(library, window.COMMAND_LIBRARY);
-      if (JSON.stringify(reorganized) !== JSON.stringify(library)) {
-        const updated = { ...record, library: reorganized, updatedAt: new Date().toISOString() };
+      let updatedLibrary = M.reorganizeProjectCategories(library, window.COMMAND_LIBRARY);
+      const migrations = Array.isArray(record.migrations) ? record.migrations : [];
+      const addCondaCreate = !migrations.includes(CONDA_CREATE_MIGRATION) && updatedLibrary.categories.some(c => c.id === 'htf-env');
+      if (addCondaCreate) {
+        updatedLibrary = M.mergeMissing(updatedLibrary, {
+          categories: projectPack.categories.filter(c => c.id === 'htf-env' || c.id === 'htf-conda-create'),
+          commands: projectPack.commands.filter(c => c.id.startsWith('htf-conda-create-')),
+        });
+      }
+      if (addCondaCreate || JSON.stringify(updatedLibrary) !== JSON.stringify(library)) {
+        const updated = { ...record, library: updatedLibrary, updatedAt: new Date().toISOString() };
+        if (addCondaCreate) updated.migrations = [...migrations, CONDA_CREATE_MIGRATION];
         const serialized = JSON.stringify(updated);
         if (localStorage.getItem(KEY) !== snapshot) throw new Error('命令库已在其他标签页更新');
         localStorage.setItem(KEY, serialized);
-        record = updated; snapshot = serialized; library = reorganized;
+        record = updated; snapshot = serialized; library = updatedLibrary;
       }
     }
     const probe = KEY + '-probe'; localStorage.setItem(probe, '1'); localStorage.removeItem(probe);
@@ -76,7 +86,7 @@
       unlocked = false; render();
       throw new Error('另一个标签页已更新命令库。请先导出当前内容，再刷新页面后重试，避免覆盖更新。');
     }
-    const nextRecord = { version: 2, library: M.validate(nextLibrary), lock, updatedAt: new Date().toISOString() };
+    const nextRecord = { ...record, version: 2, library: M.validate(nextLibrary), lock, updatedAt: new Date().toISOString() };
     const serialized = JSON.stringify(nextRecord);
     try { localStorage.setItem(KEY, serialized); }
     catch { throw new Error('保存失败，浏览器空间可能不足。本次修改未生效，请先导出备份。'); }

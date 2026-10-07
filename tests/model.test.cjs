@@ -4,8 +4,9 @@ const fs=require('node:fs'),vm=require('node:vm');
 const M=require('../model.js');
 const ctx={window:{}};vm.runInNewContext(fs.readFileSync(require.resolve('../commands.js'),'utf8'),ctx);
 const seed=()=>M.validate(ctx.window.COMMAND_LIBRARY);
-test('preserves every source command across hierarchical categories',()=>{const l=seed();assert.equal(l.commands.length,84);assert.equal(l.categories.length,40);assert.equal(M.ordered(l).length,40);assert.equal(M.descendants(l,'server-root').size,7);assert.equal(M.path(l,'mosh'),'服务器 / 连接与环境 / Mosh 远程连接');assert.deepEqual(Array.from(l.categories.filter(c=>c.parent===null&&c.id.startsWith('htf-')),c=>c.id),['htf-env','htf-vision','htf-learning','htf-ops','htf-web']);});
+test('preserves every source command across hierarchical categories',()=>{const l=seed();assert.equal(l.commands.length,86);assert.equal(l.categories.length,41);assert.equal(M.ordered(l).length,41);assert.equal(M.descendants(l,'server-root').size,7);assert.equal(M.path(l,'mosh'),'服务器 / 连接与环境 / Mosh 远程连接');assert.deepEqual(Array.from(l.categories.filter(c=>c.parent===null&&c.id.startsWith('htf-')),c=>c.id),['htf-env','htf-vision','htf-learning','htf-ops','htf-web']);});
 test('includes the server Conda activation command with the supplied path',()=>{const l=seed();const command=l.commands.find(c=>c.id==='htf-conda-01');assert.equal(M.path(l,command.category),'Python 环境 / Conda · maskdino310');assert.equal(command.code,'source "/mnt/sda1/htf/software/miniforge3/etc/profile.d/conda.sh"\nconda activate maskdino310');});
+test('provides separate Linux and Windows commands for a new Conda environment',()=>{const l=seed();const linux=l.commands.find(c=>c.id==='htf-conda-create-linux'),windows=l.commands.find(c=>c.id==='htf-conda-create-windows');assert.equal(M.path(l,linux.category),'Python 环境 / 新建 Conda 环境');assert.equal(windows.category,linux.category);assert.match(linux.code,/source "\/mnt\/sda1\/htf\/software\/miniforge3\/etc\/profile\.d\/conda\.sh"/);assert.match(linux.code,/conda create -n "\$ENV_NAME" python=3\.10/);assert.match(windows.code,/conda create -n your_new_env python=3\.10/);assert.doesNotMatch(windows.code,/source/);});
 test('rejects cycles, excessive depth, duplicates, and orphan commands',()=>{
  let l=seed();l.categories[0].parent='mosh';assert.throws(()=>M.validate(l),/自身/);
  l=seed();l.categories.push({...l.categories[0]});assert.throws(()=>M.validate(l),/重复/);
@@ -15,14 +16,14 @@ test('rejects cycles, excessive depth, duplicates, and orphan commands',()=>{
 test('moves commands across categories and preserves exact multiline content',()=>{
  const l=seed(),a=l.commands[0],b=l.commands[1];const content=a.code;
  M.move(l,a.id,b.category,b.id);assert.equal(l.commands.find(c=>c.id===a.id).category,b.category);assert.equal(l.commands.findIndex(c=>c.id===a.id)+1,l.commands.findIndex(c=>c.id===b.id));assert.equal(l.commands.find(c=>c.id===a.id).code,content);assert.doesNotThrow(()=>M.validate(l));
- M.move(l,a.id,b.category);assert.equal(l.commands.at(-1).id,a.id);assert.equal(l.commands.length,84);
+ M.move(l,a.id,b.category);assert.equal(l.commands.at(-1).id,a.id);assert.equal(l.commands.length,86);
 });
 
 test('merges only missing project entries without overwriting edits or restoring deleted old commands',()=>{
  const all=seed(),pack={categories:all.categories.filter(c=>c.id.startsWith('htf-')),commands:all.commands.filter(c=>c.id.startsWith('htf-'))};
  const old={categories:all.categories.filter(c=>!c.id.startsWith('htf-')),commands:all.commands.filter(c=>!c.id.startsWith('htf-')&&c.id!=='connect-02')};
  old.commands[0].code='my custom command';const before=JSON.stringify(old);
- const merged=M.mergeMissing(old,pack);assert.equal(merged.commands.length,83);assert.equal(merged.commands.find(c=>c.id==='connect-01').code,'my custom command');assert.equal(merged.commands.some(c=>c.id==='connect-02'),false);assert.equal(JSON.stringify(old),before);
+ const merged=M.mergeMissing(old,pack);assert.equal(merged.commands.length,85);assert.equal(merged.commands.find(c=>c.id==='connect-01').code,'my custom command');assert.equal(merged.commands.some(c=>c.id==='connect-02'),false);assert.equal(JSON.stringify(old),before);
  merged.commands.find(c=>c.id==='htf-env-01').code='customized project command';merged.categories.find(c=>c.id==='htf-env').label='my environment';
  assert.deepEqual(M.mergeMissing(merged,pack),merged);
 });

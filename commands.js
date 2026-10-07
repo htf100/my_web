@@ -142,6 +142,11 @@ window.COMMAND_LIBRARY = {
       "parent": "htf-env"
     },
     {
+      "id": "htf-conda-create",
+      "label": "新建 Conda 环境",
+      "parent": "htf-env"
+    },
+    {
       "id": "htf-vision",
       "label": "图像测量 · DIM",
       "parent": null
@@ -837,6 +842,30 @@ window.COMMAND_LIBRARY = {
       "environment": "server",
       "context": "服务器 Bash 终端",
       "note": "在已执行过 conda.sh 的同一个终端中使用。",
+      "warning": false
+    },
+    {
+      "id": "htf-conda-create-linux",
+      "category": "htf-conda-create",
+      "title": "Linux 服务器新建 Conda 环境",
+      "description": "使用服务器上的 Miniforge 创建 Python 3.10 环境并激活。",
+      "code": "ENV_NAME=your_new_env\nsource \"/mnt/sda1/htf/software/miniforge3/etc/profile.d/conda.sh\" &&\nconda create -n \"$ENV_NAME\" python=3.10 &&\nconda activate \"$ENV_NAME\"",
+      "language": "Bash",
+      "environment": "server",
+      "context": "服务器 Bash 终端",
+      "note": "先把第一行 your_new_env 改为新环境名；现有 maskdino310 不会被修改。创建时 Conda 会询问是否继续。",
+      "warning": false
+    },
+    {
+      "id": "htf-conda-create-windows",
+      "category": "htf-conda-create",
+      "title": "Windows 新建 Conda 环境",
+      "description": "在 Windows 的 Miniforge Prompt 中创建 Python 3.10 环境并激活。",
+      "code": "conda create -n your_new_env python=3.10\nconda activate your_new_env",
+      "language": "CMD",
+      "environment": "server",
+      "context": "Windows Miniforge Prompt",
+      "note": "先把两处 your_new_env 改成同一个新环境名。Windows 不执行 Linux 的 source conda.sh；普通 PowerShell 需先完成 Conda 初始化。",
       "warning": false
     },
     {
