@@ -471,7 +471,7 @@
       commit(draft => Object.assign(draft, M.mergeMissing(draft, projectPack)), `已补充 ${count} 条项目命令，可撤销`);
       view.panels[active] = 'htf-projects'; saveView(); renderBoard();
     });
-    body.append(el('p', 'dialog-help', `将添加缺少的 ${count} 条命令，涵盖 Python 环境、图像测量、数据清洗与训练、资源备份及网站维护。保留你已有的命令、编辑和分类，不恢复此前删除的旧版预置命令。`));
+    body.append(el('p', 'dialog-help', `将添加缺少的 ${count} 条命令，涵盖 Python 与 Conda 环境、图像测量、数据清洗与训练、资源备份及网站维护。保留你已有的命令、编辑和分类，不恢复此前删除的旧版预置命令。`));
     body.append(el('p', 'dialog-help', '命令中的 /path/to/ 是待替换路径。这里只加入命令库，不会安装依赖、运行算法或启动训练。'));
   }));
   $('#manage-categories').addEventListener('click', manageCategories);

@@ -137,6 +137,11 @@ window.COMMAND_LIBRARY = {
       "parent": "htf-projects"
     },
     {
+      "id": "htf-conda",
+      "label": "Conda · maskdino310",
+      "parent": "htf-env"
+    },
+    {
       "id": "htf-vision",
       "label": "图像测量 · DIM",
       "parent": "htf-projects"
@@ -752,6 +757,66 @@ window.COMMAND_LIBRARY = {
       "environment": "server",
       "context": "Ubuntu 终端",
       "note": "安装会下载 PyTorch 等较大的包。后续训练命令先 source /home/ubuntu/disk/htf/self_learning/.venv/bin/activate；GPU 是否可用仍需单独检查。",
+      "warning": false
+    },
+    {
+      "id": "htf-conda-01",
+      "category": "htf-conda",
+      "title": "激活 maskdino310 环境",
+      "description": "先加载服务器上的 Miniforge 初始化脚本，再激活已有环境。",
+      "code": "source \"/mnt/sda1/htf/software/miniforge3/etc/profile.d/conda.sh\"\nconda activate maskdino310",
+      "language": "Bash",
+      "environment": "server",
+      "context": "服务器 Bash 终端",
+      "note": "直接粘贴到当前 Bash 会话；新开终端或重新登录后需要再次激活。路径来自当前服务器配置。",
+      "warning": false
+    },
+    {
+      "id": "htf-conda-02",
+      "category": "htf-conda",
+      "title": "查看 Conda 环境列表",
+      "description": "确认 maskdino310 存在，并查看当前激活的环境。",
+      "code": "source \"/mnt/sda1/htf/software/miniforge3/etc/profile.d/conda.sh\"\nconda env list",
+      "language": "Bash",
+      "environment": "server",
+      "context": "服务器 Bash 终端",
+      "note": "环境名前的 * 表示当前激活的环境。",
+      "warning": false
+    },
+    {
+      "id": "htf-conda-03",
+      "category": "htf-conda",
+      "title": "核对 maskdino310 的 Python 与 pip",
+      "description": "检查环境名、安装目录，以及实际使用的 Python 和 pip。",
+      "code": "source \"/mnt/sda1/htf/software/miniforge3/etc/profile.d/conda.sh\"\nconda activate maskdino310\nprintf '环境：%s\\n目录：%s\\n' \"$CONDA_DEFAULT_ENV\" \"$CONDA_PREFIX\"\ncommand -v python\npython -m pip --version",
+      "language": "Bash",
+      "environment": "server",
+      "context": "服务器 Bash 终端",
+      "note": "确认输出路径位于 maskdino310 环境下，再用 python -m pip 安装该环境的依赖。",
+      "warning": false
+    },
+    {
+      "id": "htf-conda-04",
+      "category": "htf-conda",
+      "title": "查看 maskdino310 已安装包",
+      "description": "列出已有环境中的包和版本，不修改环境。",
+      "code": "source \"/mnt/sda1/htf/software/miniforge3/etc/profile.d/conda.sh\"\nconda list -n maskdino310",
+      "language": "Bash",
+      "environment": "server",
+      "context": "服务器 Bash 终端",
+      "note": "如需确认某个包，可在终端中用 conda list -n maskdino310 包名筛选。",
+      "warning": false
+    },
+    {
+      "id": "htf-conda-05",
+      "category": "htf-conda",
+      "title": "退出当前 Conda 环境",
+      "description": "从当前 Bash 会话退出已激活的环境。",
+      "code": "conda deactivate",
+      "language": "Bash",
+      "environment": "server",
+      "context": "服务器 Bash 终端",
+      "note": "在已执行过 conda.sh 的同一个终端中使用。",
       "warning": false
     },
     {
