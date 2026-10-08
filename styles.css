@@ -202,7 +202,9 @@ dialog::backdrop { background: rgba(17, 30, 56, 0.376); backdrop-filter: blur(3p
 .news-reduced .news-group + .news-group { display: none; }
 .news-empty .news-track { animation: none; transform: none; }
 .copy:hover { background: #e7edf7; border-color: transparent; }
-.pinned-copy { color: #8290a2; }
+.pinned-copy { color: #8290a2; position: relative; }
+.pinned-copy::after { content: attr(data-slot); position: absolute; right: 1px; bottom: 0; font: 600 9px/1 Arial, sans-serif; }
+.quick-copy { color: #3a7982; }
 .copy svg { display: block; width: 18px; height: 18px; fill: none; stroke: currentcolor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .copy.copied, .copy.copied:hover { color: #147d68; background: #e6f6ef; border-color: transparent; }
 .copy-check { display: block; font-family: Arial, sans-serif; font-size: 23px; font-weight: 700; line-height: 1; }
