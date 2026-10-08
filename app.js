@@ -6,6 +6,7 @@
   const VIEW_KEY = 'htf-command-desk-layout-v2';
   const PINNED_KEY = 'htf-command-desk-pinned-copy-v1:' + new URL('.', location.href).pathname;
   const CONDA_CREATE_MIGRATION = 'conda-create-v1';
+  const SSH_ZICP_MIGRATION = 'ssh-zicp-v1';
   const clone = value => JSON.parse(JSON.stringify(value));
   const uid = () => 'id-' + crypto.randomUUID();
   let library = M.validate(window.COMMAND_LIBRARY);
@@ -45,9 +46,16 @@
           commands: projectPack.commands.filter(c => c.id.startsWith('htf-conda-create-')),
         });
       }
-      if (addCondaCreate || JSON.stringify(updatedLibrary) !== JSON.stringify(library)) {
+      const addSshZicp = !migrations.includes(SSH_ZICP_MIGRATION) && updatedLibrary.categories.some(c => c.id === 'connection');
+      if (addSshZicp) {
+        updatedLibrary = M.mergeMissing(updatedLibrary, {
+          categories: window.COMMAND_LIBRARY.categories.filter(c => c.id === 'server-root' || c.id === 'connection'),
+          commands: window.COMMAND_LIBRARY.commands.filter(c => c.id === 'connect-ssh-zicp'),
+        });
+      }
+      if (addCondaCreate || addSshZicp || JSON.stringify(updatedLibrary) !== JSON.stringify(library)) {
         const updated = { ...record, library: updatedLibrary, updatedAt: new Date().toISOString() };
-        if (addCondaCreate) updated.migrations = [...migrations, CONDA_CREATE_MIGRATION];
+        updated.migrations = [...migrations, ...(addCondaCreate ? [CONDA_CREATE_MIGRATION] : []), ...(addSshZicp ? [SSH_ZICP_MIGRATION] : [])];
         const serialized = JSON.stringify(updated);
         if (localStorage.getItem(KEY) !== snapshot) throw new Error('命令库已在其他标签页更新');
         localStorage.setItem(KEY, serialized);

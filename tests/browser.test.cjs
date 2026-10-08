@@ -8,7 +8,7 @@ const root=require('node:path').resolve(__dirname,'..');
  try {
  const origin='http://127.0.0.1:'+server.address().port;
  const context=await browser.newContext({viewport:{width:1600,height:1080},permissions:['clipboard-read','clipboard-write'],acceptDownloads:true});const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
- await page.route('https://api-one.wallstcn.com/**', r=>r.abort());await page.goto(origin+'/commands/');await page.waitForSelector('.card');assert.equal(await page.locator('.card').count(),45);const seedCount=await page.evaluate(()=>window.COMMAND_LIBRARY.commands.length);assert.equal(await page.locator('.column').count(),3);
+ await page.route('https://api-one.wallstcn.com/**', r=>r.abort());await page.goto(origin+'/commands/');await page.waitForSelector('.card');assert.equal(await page.locator('.card').count(),46);const seedCount=await page.evaluate(()=>window.COMMAND_LIBRARY.commands.length);assert.equal(await page.locator('.column').count(),3);
  await page.screenshot({path:root+'/preview-desktop.png'});
  await page.locator('[data-count="4"]').click();assert.equal(await page.locator('.column').count(),4);
  await page.locator('[data-count="2"]').click();await page.getByLabel('第 1 栏分类',{exact:true}).selectOption('mosh');await page.reload();assert.equal(await page.locator('.column').count(),2);assert.equal(await page.getByLabel('第 1 栏分类',{exact:true}).inputValue(),'mosh');
@@ -38,6 +38,12 @@ const root=require('node:path').resolve(__dirname,'..');
  await page.evaluate(()=>{const key='htf-command-desk-v2',saved=JSON.parse(localStorage.getItem(key));saved.library.commands=saved.library.commands.filter(c=>c.id!=='htf-conda-create-windows');localStorage.setItem(key,JSON.stringify(saved));});
  await page.reload();assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('htf-command-desk-v2')).library.commands.some(c=>c.id==='htf-conda-create-windows')),false);
  await page.evaluate(()=>{const key='htf-command-desk-v2',saved=JSON.parse(localStorage.getItem(key));saved.library.commands.push(window.COMMAND_LIBRARY.commands.find(c=>c.id==='htf-conda-create-windows'));localStorage.setItem(key,JSON.stringify(saved));});
+ await page.reload();
+ await page.evaluate(()=>{const key='htf-command-desk-v2',saved=JSON.parse(localStorage.getItem(key));saved.library.commands=saved.library.commands.filter(c=>c.id!=='connect-ssh-zicp');saved.migrations=saved.migrations.filter(id=>id!=='ssh-zicp-v1');localStorage.setItem(key,JSON.stringify(saved));});
+ await page.reload();assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('htf-command-desk-v2')).library.commands.find(c=>c.id==='connect-ssh-zicp').code),'ssh -p 12793 hutianfang@55e844v521.zicp.fun');
+ await page.evaluate(()=>{const key='htf-command-desk-v2',saved=JSON.parse(localStorage.getItem(key));saved.library.commands=saved.library.commands.filter(c=>c.id!=='connect-ssh-zicp');localStorage.setItem(key,JSON.stringify(saved));});
+ await page.reload();assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('htf-command-desk-v2')).library.commands.some(c=>c.id==='connect-ssh-zicp')),false);
+ await page.evaluate(()=>{const key='htf-command-desk-v2',saved=JSON.parse(localStorage.getItem(key));saved.library.commands.push(window.COMMAND_LIBRARY.commands.find(c=>c.id==='connect-ssh-zicp'));localStorage.setItem(key,JSON.stringify(saved));});
  await page.reload();
  await page.locator('#unlock').click();await page.locator('[name=secret]').fill('wrong-password');await page.locator('#dialog-submit').click();await page.waitForFunction(()=>!document.querySelector('#dialog-error').hidden);assert.match(await page.locator('#dialog-error').innerText(),/不正确/);await page.locator('[name=secret]').fill('test-secret-123');await page.locator('#dialog-submit').click();await page.locator('#modal').waitFor({state:'hidden'});
  // Storage failure must not claim a save or mutate the visible library.

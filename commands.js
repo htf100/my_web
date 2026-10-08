@@ -257,6 +257,18 @@ window.COMMAND_LIBRARY = {
       "warning": false
     },
     {
+      "id": "connect-ssh-zicp",
+      "category": "connection",
+      "title": "SSH 连接 · 55e844v521.zicp.fun",
+      "description": "使用 hutianfang 用户通过 12793 端口连接服务器。",
+      "code": "ssh -p 12793 hutianfang@55e844v521.zicp.fun",
+      "language": "Shell",
+      "environment": "server",
+      "context": "Windows PowerShell / Linux 终端",
+      "note": "首次连接时请核对服务器指纹；如需登录密码，在终端提示时输入，不要写进命令。",
+      "warning": false
+    },
+    {
       "id": "tmux-05",
       "category": "sessions",
       "title": "新建 htf 会话",
