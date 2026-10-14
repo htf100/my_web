@@ -205,6 +205,31 @@ window.COMMAND_LIBRARY = {
       "id": "htf-web-publish",
       "label": "发布与状态",
       "parent": "htf-web"
+    },
+    {
+      "id": "win-remote-root",
+      "label": "Windows 远程访问",
+      "parent": "server-root"
+    },
+    {
+      "id": "win-remote-steps",
+      "label": "重连四步",
+      "parent": "win-remote-root"
+    },
+    {
+      "id": "win-remote-use",
+      "label": "连接后使用",
+      "parent": "win-remote-root"
+    },
+    {
+      "id": "win-remote-errors",
+      "label": "重连失败处理",
+      "parent": "win-remote-root"
+    },
+    {
+      "id": "win-remote-config",
+      "label": "配置与约束",
+      "parent": "win-remote-root"
     }
   ],
   "commands": [
@@ -1251,6 +1276,222 @@ window.COMMAND_LIBRARY = {
       "context": "Ubuntu 终端",
       "note": "此服务器已使用仓库专属 GitHub 登录目录；其他电脑可在自己的 gh 登录环境中执行，不需要复制鉴权文件。",
       "warning": false
+    },
+    {
+      "id": "win-remote-overview",
+      "category": "win-remote-steps",
+      "title": "开始前 · 断开后怎样恢复",
+      "description": "用于断开连接、Windows 重启或重新打开 Codex 后恢复远程访问。先在 Windows 建立连接，再让 Linux 上的 Codex 实际验证。",
+      "code": "",
+      "note": "只关闭隧道窗口且 ssh-agent 仍在运行、密钥仍已加载时，可直接执行第 3 步。Windows 重启后从第 1 步开始检查。服务启动在管理员 PowerShell 中执行；加载密钥和建立隧道回到 tfhu 的普通 PowerShell。",
+      "context": "说明",
+      "environment": "other",
+      "language": "说明",
+      "warning": false
+    },
+    {
+      "id": "win-remote-services",
+      "category": "win-remote-steps",
+      "title": "第 1 步 · 检查两个 SSH 服务",
+      "description": "在 tfhu 的普通 PowerShell 检查 sshd 与 ssh-agent。",
+      "code": "Get-Service sshd,ssh-agent | Select-Object Name,Status,StartType",
+      "note": "两个服务的 Status 都应为 Running。ssh-agent 当前为 Manual，Windows 重启后可能需要手动启动。无需重新安装 OpenSSH、重新生成密钥或修改启动类型。",
+      "context": "Windows · 普通 PowerShell",
+      "environment": "other",
+      "language": "PowerShell",
+      "warning": false
+    },
+    {
+      "id": "win-remote-start-agent",
+      "category": "win-remote-steps",
+      "title": "第 1 步 · 启动 ssh-agent",
+      "description": "仅在 ssh-agent 显示 Stopped 时：右键开始菜单，打开“终端（管理员）”或“Windows PowerShell（管理员）”。",
+      "code": "Start-Service ssh-agent",
+      "note": "启动后回到 tfhu 的普通 PowerShell，继续第 2 步。",
+      "context": "Windows · 管理员 PowerShell",
+      "environment": "other",
+      "language": "PowerShell",
+      "warning": false
+    },
+    {
+      "id": "win-remote-start-sshd",
+      "category": "win-remote-steps",
+      "title": "第 1 步 · 启动 sshd",
+      "description": "仅在 sshd 也显示 Stopped 时，在管理员 PowerShell 中执行。",
+      "code": "Start-Service sshd",
+      "note": "启动后再次检查两个服务，并回到普通 PowerShell。",
+      "context": "Windows · 管理员 PowerShell",
+      "environment": "other",
+      "language": "PowerShell",
+      "warning": false
+    },
+    {
+      "id": "win-remote-list-keys",
+      "category": "win-remote-steps",
+      "title": "第 2 步 · 确认密钥已加载",
+      "description": "在 Windows 普通 PowerShell 查看 ssh-agent 中的密钥。",
+      "code": "ssh-add -l",
+      "note": "输出包含 SHA256:LdIz5Un0XNe49YU+So3Z9lkuyTZQcDoSaxvvcOBzHso 时直接进入第 3 步。若提示 Error connecting to agent，先返回第 1 步启动 ssh-agent。",
+      "context": "Windows · 普通 PowerShell",
+      "environment": "other",
+      "language": "PowerShell",
+      "warning": false
+    },
+    {
+      "id": "win-remote-load-key",
+      "category": "win-remote-steps",
+      "title": "第 2 步 · 加载 lab_reverse_tunnel",
+      "description": "只有 ssh-add -l 中没有指定指纹时才执行。",
+      "code": "ssh-add \"$env:USERPROFILE\\.ssh\\lab_reverse_tunnel\"",
+      "note": "出现 Enter passphrase 时，只在 Windows 中输入这把私钥的口令；输入时可能不显示字符。随后再次执行 ssh-add -l，确认指纹 SHA256:LdIz5Un0XNe49YU+So3Z9lkuyTZQcDoSaxvvcOBzHso。",
+      "context": "Windows · 普通 PowerShell",
+      "environment": "other",
+      "language": "PowerShell",
+      "warning": false
+    },
+    {
+      "id": "win-remote-tunnel",
+      "category": "win-remote-steps",
+      "title": "第 3 步 · 建立隧道并保持窗口打开",
+      "description": "最关键的一步：在 tfhu 的普通 PowerShell 复制并执行完整一整行。若提示 lab_to_server 的 Enter passphrase，在 Windows 中输入该私钥口令。",
+      "code": "ssh -A -T -i \"$env:USERPROFILE\\.ssh\\lab_to_server\" -R 127.0.0.1:2222:127.0.0.1:22 -o IdentitiesOnly=yes -o ExitOnForwardFailure=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 ubuntu@43.156.51.71 'bash /home/ubuntu/disk/htf/windows-remote/hold-tunnel.sh'",
+      "note": "成功应显示 Windows Agent ready: SHA256:LdIz5Un0XNe49YU+So3Z9lkuyTZQcDoSaxvvcOBzHso，以及 Keep this Windows SSH window open; Ctrl+C disconnects.\n命令停在那里持续等待是正常状态，保持窗口打开，无需继续输入。关闭窗口或按 Ctrl+C 会断开；休眠、关机、断网也可能断开。恢复后重新连接。\n保留 -A 和 hold-tunnel.sh；它会自动更新服务器上的 Agent 路径，无需复制 SSH_AUTH_SOCK，不要换成只有 -N 的隧道命令。",
+      "context": "Windows · 普通 PowerShell",
+      "environment": "other",
+      "language": "PowerShell",
+      "warning": true
+    },
+    {
+      "id": "win-remote-verify",
+      "category": "win-remote-steps",
+      "title": "第 4 步 · Linux 实际验证连接",
+      "description": "保持 Windows 隧道窗口打开，在 Linux 服务器执行下面两个命令，或把下一张卡片的提示发给 Codex。",
+      "code": "/home/ubuntu/disk/htf/windows-remote/win-ssh.sh hostname\n/home/ubuntu/disk/htf/windows-remote/win-ssh.sh whoami",
+      "note": "预期分别返回 DESKTOP-8BF2DR5 和 desktop-8bf2dr5\\tfhu。第 3 步的就绪提示与这两个命令的实际结果共同确认本次连接可用。每次重连都要重新验证，之前成功不代表本次已连接。",
+      "context": "Linux · 服务器终端",
+      "environment": "server",
+      "language": "Bash",
+      "warning": false
+    },
+    {
+      "id": "win-remote-verify-prompt",
+      "category": "win-remote-steps",
+      "title": "第 4 步 · 发给 Codex 的验证提示",
+      "description": "复制这段话到 Linux 服务器上的 Codex 对话中。",
+      "code": "Windows 隧道已重连。请用 /home/ubuntu/disk/htf/windows-remote/win-ssh.sh 执行 hostname 和 whoami，确认可以访问。",
+      "note": "确认两个命令成功后，再继续告诉 Codex 要执行的 Windows 任务。",
+      "context": "Codex · 对话提示",
+      "environment": "other",
+      "language": "文本",
+      "warning": false
+    },
+    {
+      "id": "win-remote-powershell",
+      "category": "win-remote-use",
+      "title": "从 Linux 执行 Windows PowerShell",
+      "description": "win-ssh.sh 用于执行 Windows 命令；win-ps.py 用于执行 PowerShell 脚本。下面示例查看 tfhu 用户目录。",
+      "code": "/home/ubuntu/disk/htf/windows-remote/win-ps.py 'Get-ChildItem -LiteralPath \"C:\\Users\\tfhu\"'",
+      "note": "支持 tfhu 权限范围内的命令执行、文件读写和本地工具调用；桌面画面查看、鼠标点击和键盘控制尚未配置。",
+      "context": "Linux · 服务器终端",
+      "environment": "server",
+      "language": "Bash",
+      "warning": false
+    },
+    {
+      "id": "win-remote-task-prompts",
+      "category": "win-remote-use",
+      "title": "连接后 · 告诉 Codex 要做什么",
+      "description": "在第 4 步验证成功后，可把具体任务发给 Codex。",
+      "code": "查看 C:\\Users\\tfhu 下有哪些文件。\n检查我的 Windows Python 环境。\n修改这个文件：C:\\具体目录\\具体文件。",
+      "note": "文件修改示例中的路径需替换为实际文件。若运行环境出现批准联网执行提示，按实际提示处理。",
+      "context": "Codex · 对话提示",
+      "environment": "other",
+      "language": "文本",
+      "warning": false
+    },
+    {
+      "id": "win-remote-error-socket",
+      "category": "win-remote-errors",
+      "title": "Windows Agent socket is unavailable",
+      "description": "说明本次连接对应的 Agent socket 不可用。",
+      "code": "",
+      "note": "重新执行第 3 步，并保持 Windows SSH 窗口打开。命令会自动更新 Agent 路径，然后执行第 4 步验证。",
+      "context": "说明",
+      "environment": "other",
+      "language": "说明",
+      "warning": false
+    },
+    {
+      "id": "win-remote-error-key",
+      "category": "win-remote-errors",
+      "title": "Agent 中缺少 lab_reverse_tunnel",
+      "description": "所需密钥尚未加载到 Windows ssh-agent。",
+      "code": "",
+      "note": "先按第 2 步执行 ssh-add 加载密钥，确认指定指纹，再执行第 3 步。口令只在 Windows 提示中输入。",
+      "context": "说明",
+      "environment": "other",
+      "language": "说明",
+      "warning": false
+    },
+    {
+      "id": "win-remote-error-forward",
+      "category": "win-remote-errors",
+      "title": "remote port forwarding failed",
+      "description": "先检查自己的旧隧道窗口是否仍在运行。",
+      "code": "",
+      "note": "若已有可用连接，不必再开一条；其他情况保留完整错误，交给 Codex 检查。不要终止别人的进程。",
+      "context": "说明",
+      "environment": "other",
+      "language": "说明",
+      "warning": true
+    },
+    {
+      "id": "win-remote-error-host-key",
+      "category": "win-remote-errors",
+      "title": "主机密钥不匹配",
+      "description": "保留完整错误并核对 Windows 主机指纹。",
+      "code": "",
+      "note": "此前核对的 Windows ED25519 指纹：SHA256:0K9/PnMqaQ4K7G3/JmnFUAhxjTOd5MB1LCawow7/Jjk。不要关闭主机验证，也不要删除共享账号的主机记录。",
+      "context": "说明",
+      "environment": "other",
+      "language": "说明",
+      "warning": true
+    },
+    {
+      "id": "win-remote-error-network",
+      "category": "win-remote-errors",
+      "title": "connection refused / timeout",
+      "description": "保留完整日志，告知 Codex 检查连接状态。",
+      "code": "",
+      "note": "需要检查 Linux 当前监听状态及 Windows sshd 状态。隧道窗口关闭、休眠、关机或断网后，应恢复并重新按四步连接。",
+      "context": "说明",
+      "environment": "other",
+      "language": "说明",
+      "warning": false
+    },
+    {
+      "id": "win-remote-config",
+      "category": "win-remote-config",
+      "title": "保留的路径、监听与主机信息",
+      "description": "这些是已配置的连接入口与核对信息。",
+      "code": "",
+      "note": "服务器脚本目录：/home/ubuntu/disk/htf/windows-remote。隧道仅监听 Linux 的 127.0.0.1:2222，转发到 Windows 的 127.0.0.1:22。Windows 私钥保留在 C:\\Users\\tfhu\\.ssh。服务器使用任务目录内的独立 known_hosts 和公钥文件，无需修改全局 SSH 配置、防火墙或路由。此前实际核对过 hostname、whoami、PowerShell 中文输出和文件读取，每次重连仍以第 4 步实际命令结果为准。",
+      "context": "说明",
+      "environment": "other",
+      "language": "说明",
+      "warning": false
+    },
+    {
+      "id": "win-remote-key-rules",
+      "category": "win-remote-config",
+      "title": "密钥口令与共享账号的使用约束",
+      "description": "保留原连接说明中的配置约束。",
+      "code": "",
+      "note": "Windows 私钥不得复制到共享服务器。私钥口令只在 Windows 提示中输入，不写进说明、脚本，也不发送到服务器。Agent 转发期间，同用 ubuntu 账号的人也可能使用已加载密钥请求认证；这是此前已说明并接受的共享账号风险。",
+      "context": "说明",
+      "environment": "other",
+      "language": "说明",
+      "warning": true
     }
   ],
   "version": 2
