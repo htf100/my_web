@@ -8,7 +8,7 @@ const root=require('node:path').resolve(__dirname,'..');
  try {
  const origin='http://127.0.0.1:'+server.address().port;
  const context=await browser.newContext({viewport:{width:1600,height:1080},permissions:['clipboard-read','clipboard-write'],acceptDownloads:true});const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
- await page.route('https://api-one.wallstcn.com/**', r=>r.abort());await page.goto(origin+'/commands/');await page.waitForSelector('.card');assert.equal(await page.locator('.card').count(),64);const seedCount=await page.evaluate(()=>window.COMMAND_LIBRARY.commands.length);assert.equal(await page.locator('.column').count(),3);
+ await page.route('https://api-one.wallstcn.com/**', r=>r.abort());await page.goto(origin+'/commands/');await page.waitForSelector('.card');assert.equal(await page.locator('.card').count(),65);const seedCount=await page.evaluate(()=>window.COMMAND_LIBRARY.commands.length);assert.equal(await page.locator('.column').count(),3);
  await page.locator('#pinned-copy').click();await page.locator('[name=pinned-value]').fill('original pinned text');await page.locator('#dialog-submit').click();await page.locator('#modal').waitFor({state:'hidden'});
  await page.locator('#quick-copy').click();await page.locator('[name=pinned-value]').fill('quick copy text');await page.locator('#dialog-submit').click();await page.locator('#modal').waitFor({state:'hidden'});
  await page.locator('#quick-copy').click();assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),'quick copy text');

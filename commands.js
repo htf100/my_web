@@ -12,6 +12,11 @@ window.COMMAND_LIBRARY = {
       "parent": "server-root"
     },
     {
+      "id": "codex-launch",
+      "label": "Codex 启动配置",
+      "parent": "connection"
+    },
+    {
       "id": "wsl",
       "label": "WSL 系统",
       "parent": "connection"
@@ -1492,6 +1497,18 @@ window.COMMAND_LIBRARY = {
       "environment": "other",
       "language": "说明",
       "warning": true
+    },
+    {
+      "id": "codex-launch-network",
+      "category": "codex-launch",
+      "title": "Codex · 工作区写入并允许联网",
+      "description": "在项目目录的终端中启动 Codex，使用 workspace-write 沙箱，并允许该沙箱内的网络访问。",
+      "code": "codex --sandbox workspace-write -c sandbox_workspace_write.network_access=true",
+      "note": "--sandbox workspace-write 选择工作区可写沙箱；-c sandbox_workspace_write.network_access=true 允许该沙箱向外访问网络。需要先安装 Codex CLI。参数参考：https://learn.chatgpt.com/docs/config-file/config-reference",
+      "context": "终端 · Codex CLI",
+      "environment": "server",
+      "language": "Shell",
+      "warning": false
     }
   ],
   "version": 2

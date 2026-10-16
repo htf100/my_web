@@ -9,6 +9,7 @@
   const CONDA_CREATE_MIGRATION = 'conda-create-v1';
   const SSH_ZICP_MIGRATION = 'ssh-zicp-v1';
   const WINDOWS_REMOTE_MIGRATION = 'windows-remote-v1';
+  const CODEX_LAUNCH_MIGRATION = 'codex-launch-v1';
   const clone = value => JSON.parse(JSON.stringify(value));
   const uid = () => 'id-' + crypto.randomUUID();
   let library = M.validate(window.COMMAND_LIBRARY);
@@ -62,9 +63,16 @@
           commands: window.COMMAND_LIBRARY.commands.filter(c => c.id.startsWith('win-remote-')),
         });
       }
-      if (addCondaCreate || addSshZicp || addWindowsRemote || JSON.stringify(updatedLibrary) !== JSON.stringify(library)) {
+      const addCodexLaunch = !migrations.includes(CODEX_LAUNCH_MIGRATION);
+      if (addCodexLaunch) {
+        updatedLibrary = M.mergeMissing(updatedLibrary, {
+          categories: window.COMMAND_LIBRARY.categories.filter(c => ['server-root', 'connection', 'codex-launch'].includes(c.id)),
+          commands: window.COMMAND_LIBRARY.commands.filter(c => c.id === 'codex-launch-network'),
+        });
+      }
+      if (addCondaCreate || addSshZicp || addWindowsRemote || addCodexLaunch || JSON.stringify(updatedLibrary) !== JSON.stringify(library)) {
         const updated = { ...record, library: updatedLibrary, updatedAt: new Date().toISOString() };
-        updated.migrations = [...migrations, ...(addCondaCreate ? [CONDA_CREATE_MIGRATION] : []), ...(addSshZicp ? [SSH_ZICP_MIGRATION] : []), ...(addWindowsRemote ? [WINDOWS_REMOTE_MIGRATION] : [])];
+        updated.migrations = [...migrations, ...(addCondaCreate ? [CONDA_CREATE_MIGRATION] : []), ...(addSshZicp ? [SSH_ZICP_MIGRATION] : []), ...(addWindowsRemote ? [WINDOWS_REMOTE_MIGRATION] : []), ...(addCodexLaunch ? [CODEX_LAUNCH_MIGRATION] : [])];
         const serialized = JSON.stringify(updated);
         if (localStorage.getItem(KEY) !== snapshot) throw new Error('命令库已在其他标签页更新');
         localStorage.setItem(KEY, serialized);
@@ -103,7 +111,7 @@
       unlocked = false; render();
       throw new Error('另一个标签页已更新命令库。请先导出当前内容，再刷新页面后重试，避免覆盖更新。');
     }
-    const nextRecord = { ...record, version: 2, library: M.validate(nextLibrary), lock, updatedAt: new Date().toISOString(), migrations: record?.migrations || [WINDOWS_REMOTE_MIGRATION] };
+    const nextRecord = { ...record, version: 2, library: M.validate(nextLibrary), lock, updatedAt: new Date().toISOString(), migrations: record?.migrations || [WINDOWS_REMOTE_MIGRATION, CODEX_LAUNCH_MIGRATION] };
     const serialized = JSON.stringify(nextRecord);
     try { localStorage.setItem(KEY, serialized); }
     catch { throw new Error('保存失败，浏览器空间可能不足。本次修改未生效，请先导出备份。'); }

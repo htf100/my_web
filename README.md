@@ -28,6 +28,12 @@
 
 示例中的 `/path/to/` 和“你的日志文件”需要替换；`/home/ubuntu/disk/htf` 是当前 Ubuntu 目录布局。测量参数按本地脚本核对，未执行测量、训练、安装或上传数据。训练与图像处理建议分别使用各自虚拟环境；脚本版本更新后，以项目当前配置和 `--help` 为准。
 
+## Codex 启动配置
+
+“服务器 / 连接与环境 / Codex 启动配置”包含原样命令 `codex --sandbox workspace-write -c sandbox_workspace_write.network_access=true`，用于在工作区可写沙箱中启动 Codex 并允许沙箱向外访问网络。需先安装 Codex CLI，并在项目目录终端执行。参数说明依据 [OpenAI 官方配置参考](https://learn.chatgpt.com/docs/config-file/config-reference)。
+
+可从 <https://htf100.github.io/my_web/#codex-launch> 直接定位并一键复制。已有浏览器命令库会自动补入此分类和命令一次，保留已有编辑和密令；之后删除不会在刷新时恢复。
+
 ## Windows 远程访问与重连
 
 “服务器 / Windows 远程访问”新增18张命令和说明卡片，包含重连四步、连接后使用、五类故障处理以及已有配置约束。直接打开 <https://htf100.github.io/my_web/#win-remote-root> 即可定位。命令卡片标明 Windows 普通/管理员 PowerShell、Linux 服务器终端和发给 Codex 的文本提示。
