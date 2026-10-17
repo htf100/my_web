@@ -28,6 +28,12 @@
 
 示例中的 `/path/to/` 和“你的日志文件”需要替换；`/home/ubuntu/disk/htf` 是当前 Ubuntu 目录布局。测量参数按本地脚本核对，未执行测量、训练、安装或上传数据。训练与图像处理建议分别使用各自虚拟环境；脚本版本更新后，以项目当前配置和 `--help` 为准。
 
+## 课程作业 · CS2680
+
+“课程作业 / CS2680 / Task 2”下的“启动 my_agent_platform”保存用户提供的完整两行 PowerShell 命令。第一行进入 `D:\Desktop\all\learn\course\cs2680\task\2`，第二行用 `.\..venv\Scripts\python.exe` 运行 `.\my_agent_platform\main.py`；解释器目录名 `..venv` 按原文保留。
+
+可从 <https://htf100.github.io/my_web/#cs2680-task-2> 直接打开并复制完整两行。已有浏览器命令库自动补入一次，保留自定义内容与密令；以后删除此条不会在刷新时恢复。网页只复制命令，不执行用户本机课程程序。
+
 ## Codex 启动配置
 
 “服务器 / 连接与环境 / Codex 启动配置”包含原样命令 `codex --sandbox workspace-write -c sandbox_workspace_write.network_access=true`，用于在工作区可写沙箱中启动 Codex 并允许沙箱向外访问网络。需先安装 Codex CLI，并在项目目录终端执行。参数说明依据 [OpenAI 官方配置参考](https://learn.chatgpt.com/docs/config-file/config-reference)。

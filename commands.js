@@ -235,6 +235,21 @@ window.COMMAND_LIBRARY = {
       "id": "win-remote-config",
       "label": "配置与约束",
       "parent": "win-remote-root"
+    },
+    {
+      "id": "course-root",
+      "label": "课程作业",
+      "parent": null
+    },
+    {
+      "id": "course-cs2680",
+      "label": "CS2680",
+      "parent": "course-root"
+    },
+    {
+      "id": "cs2680-task-2",
+      "label": "Task 2",
+      "parent": "course-cs2680"
     }
   ],
   "commands": [
@@ -1508,6 +1523,18 @@ window.COMMAND_LIBRARY = {
       "context": "终端 · Codex CLI",
       "environment": "server",
       "language": "Shell",
+      "warning": false
+    },
+    {
+      "id": "course-cs2680-task2-start",
+      "category": "cs2680-task-2",
+      "title": "启动 my_agent_platform",
+      "description": "进入 CS2680 的 Task 2 目录，使用指定的 Python 解释器运行 my_agent_platform 入口脚本。",
+      "code": "cd \"D:\\Desktop\\all\\learn\\course\\cs2680\\task\\2\"\n.\\..venv\\Scripts\\python.exe .\\my_agent_platform\\main.py",
+      "note": "在 Windows PowerShell 中按顺序执行这两行；第二行的相对路径以第一行切换后的目录为基准。解释器路径 ..venv 按提供的原文保留。",
+      "environment": "other",
+      "context": "Windows · PowerShell",
+      "language": "PowerShell",
       "warning": false
     }
   ],
