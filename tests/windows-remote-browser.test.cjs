@@ -11,6 +11,24 @@ const root=path.resolve(__dirname,'..');
   const context=await browser.newContext({viewport:{width:1440,height:1000},permissions:['clipboard-read','clipboard-write']});
   const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.route('https://api-one.wallstcn.com/**',r=>r.abort());
+  await page.goto(origin+'/#gpu-resources');
+  await page.waitForSelector('[data-command="gpu-resource-overview"]');
+  await page.locator('[data-count="1"]').click();
+  assert.equal(await page.locator('.card').count(),4);
+  assert.equal(await page.evaluate(()=>window.CommandModel.path(window.COMMAND_LIBRARY,'gpu-resources')),'服务器 / GPU 资源');
+  for (const [id, code] of [
+   ['overview','nvidia-smi'],
+   ['live','nvidia-smi -l 1'],
+   ['memory','nvidia-smi --query-gpu=index,name,utilization.gpu,memory.total,memory.used,memory.free --format=csv'],
+   ['processes','nvidia-smi --query-compute-apps=gpu_uuid,pid,process_name,used_gpu_memory --format=csv'],
+  ]) {
+   await page.locator('[data-command="gpu-resource-'+id+'"] .copy').click();
+   assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),code);
+  }
+  await page.setViewportSize({width:390,height:844});
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+  await page.screenshot({path:path.join(root,'preview-gpu-resources-mobile.png'),fullPage:true});
+  await page.setViewportSize({width:1440,height:1000});
   await page.goto(origin+'/#cs2680-task-2');
   await page.waitForSelector('[data-command="course-cs2680-task2-start"]');
   assert.equal(await page.getByLabel('第 1 栏分类',{exact:true}).inputValue(),'cs2680-task-2');
@@ -40,8 +58,8 @@ const root=path.resolve(__dirname,'..');
   // Reproduce an existing library with user changes before this feature existed.
   await page.evaluate(()=>{
    const original=JSON.parse(JSON.stringify(window.COMMAND_LIBRARY));
-   original.categories=original.categories.filter(c=>!c.id.startsWith('win-remote-')&&!c.id.startsWith('course-')&&c.id!=='cs2680-task-2'&&c.id!=='codex-launch');
-   original.commands=original.commands.filter(c=>!c.id.startsWith('win-remote-')&&!c.id.startsWith('course-')&&c.id!=='codex-launch-network'&&c.id!=='connect-02');
+   original.categories=original.categories.filter(c=>!c.id.startsWith('win-remote-')&&!c.id.startsWith('course-')&&c.id!=='cs2680-task-2'&&c.id!=='codex-launch'&&c.id!=='gpu-resources');
+   original.commands=original.commands.filter(c=>!c.id.startsWith('win-remote-')&&!c.id.startsWith('course-')&&c.id!=='codex-launch-network'&&c.id!=='connect-02'&&!c.id.startsWith('gpu-resource-'));
    original.commands.find(c=>c.id==='connect-01').code='my custom connection';
    localStorage.setItem('htf-command-desk-v2',JSON.stringify({version:2,lock:{hash:'retained-hash',salt:'retained-salt'},library:original,migrations:['conda-create-v1','ssh-zicp-v1']}));
   });
@@ -56,11 +74,15 @@ const root=path.resolve(__dirname,'..');
   assert.equal(saved.library.commands.filter(c=>c.id==='codex-launch-network').length,1);
   assert.equal(saved.library.commands.filter(c=>c.id==='course-cs2680-task2-start').length,1);
   assert.equal(saved.migrations.filter(v=>v==='course-cs2680-v1').length,1);
-  await page.evaluate(()=>{const key='htf-command-desk-v2',r=JSON.parse(localStorage.getItem(key));r.library.commands=r.library.commands.filter(c=>c.id!=='win-remote-load-key'&&c.id!=='codex-launch-network'&&c.id!=='course-cs2680-task2-start');r.library.commands.find(c=>c.id==='win-remote-tunnel').code='custom tunnel';localStorage.setItem(key,JSON.stringify(r));});
+  assert.equal(saved.migrations.filter(v=>v==='gpu-resources-v1').length,1);
+  assert.equal(saved.library.commands.filter(c=>c.id.startsWith('gpu-resource-')).length,4);
+  await page.evaluate(()=>{const key='htf-command-desk-v2',r=JSON.parse(localStorage.getItem(key));r.library.commands=r.library.commands.filter(c=>c.id!=='win-remote-load-key'&&c.id!=='codex-launch-network'&&c.id!=='course-cs2680-task2-start'&&c.id!=='gpu-resource-overview');r.library.commands.find(c=>c.id==='win-remote-tunnel').code='custom tunnel';localStorage.setItem(key,JSON.stringify(r));});
   await page.reload();saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('htf-command-desk-v2')));
   assert.equal(saved.library.commands.some(c=>c.id==='win-remote-load-key'),false);
   assert.equal(saved.library.commands.some(c=>c.id==='codex-launch-network'),false);
   assert.equal(saved.library.commands.some(c=>c.id==='course-cs2680-task2-start'),false);
+  assert.equal(saved.library.commands.some(c=>c.id==='gpu-resource-overview'),false);
+  assert.equal(saved.migrations.filter(v=>v==='gpu-resources-v1').length,1);
   assert.equal(saved.library.commands.find(c=>c.id==='win-remote-tunnel').code,'custom tunnel');
   assert.equal(saved.migrations.filter(v=>v==='windows-remote-v1').length,1);
   assert.deepEqual(errors,[]);

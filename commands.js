@@ -12,6 +12,11 @@ window.COMMAND_LIBRARY = {
       "parent": "server-root"
     },
     {
+      "id": "gpu-resources",
+      "label": "GPU 资源",
+      "parent": "server-root"
+    },
+    {
       "id": "codex-launch",
       "label": "Codex 启动配置",
       "parent": "connection"
@@ -1535,6 +1540,54 @@ window.COMMAND_LIBRARY = {
       "environment": "other",
       "context": "Windows · PowerShell",
       "language": "PowerShell",
+      "warning": false
+    },
+    {
+      "id": "gpu-resource-overview",
+      "category": "gpu-resources",
+      "title": "查看 GPU 资源总览",
+      "description": "查看 NVIDIA GPU 型号、利用率、显存占用、温度、功耗和进程列表。",
+      "code": "nvidia-smi",
+      "note": "Memory-Usage 是已用／总显存，GPU-Util 是 GPU 利用率；Processes 列出驱动能报告的 GPU 进程。需安装 NVIDIA 驱动并能使用 nvidia-smi。官方说明：https://docs.nvidia.com/deploy/nvidia-smi/index.html",
+      "environment": "server",
+      "context": "Linux / Windows · NVIDIA GPU 终端",
+      "language": "Shell",
+      "warning": false
+    },
+    {
+      "id": "gpu-resource-live",
+      "category": "gpu-resources",
+      "title": "每秒刷新 GPU 状态",
+      "description": "持续观察 GPU 利用率和显存变化，适合训练或推理时查看。",
+      "code": "nvidia-smi -l 1",
+      "note": "每隔 1 秒输出一次状态，按 Ctrl+C 停止查看。适用于 Linux 终端和 Windows PowerShell。",
+      "environment": "server",
+      "context": "Linux / Windows · NVIDIA GPU 终端",
+      "language": "Shell",
+      "warning": false
+    },
+    {
+      "id": "gpu-resource-memory",
+      "category": "gpu-resources",
+      "title": "汇总每张卡的利用率与剩余显存",
+      "description": "用表格查看各张 GPU 的编号、型号、利用率，以及总显存、已用显存和剩余显存。",
+      "code": "nvidia-smi --query-gpu=index,name,utilization.gpu,memory.total,memory.used,memory.free --format=csv",
+      "note": "显存以输出列头标注的 MiB 为单位；memory.free 是当前剩余显存。此命令查看所有 GPU，不限制 CUDA_VISIBLE_DEVICES。",
+      "environment": "server",
+      "context": "Linux / Windows · NVIDIA GPU 终端",
+      "language": "Shell",
+      "warning": false
+    },
+    {
+      "id": "gpu-resource-processes",
+      "category": "gpu-resources",
+      "title": "查看占用 GPU 的计算进程",
+      "description": "列出当前计算进程的 GPU UUID、PID、程序名称和显存占用。",
+      "code": "nvidia-smi --query-compute-apps=gpu_uuid,pid,process_name,used_gpu_memory --format=csv",
+      "note": "此表查询计算进程；图形进程可查看资源总览中的 Processes。Linux 中可用 ps -p PID -o user,pid,etime,args 查询进程所属用户，把 PID 换成表中数字。部分系统或驱动无法提供的字段会显示 N/A。",
+      "environment": "server",
+      "context": "Linux / Windows · NVIDIA GPU 终端",
+      "language": "Shell",
       "warning": false
     }
   ],
