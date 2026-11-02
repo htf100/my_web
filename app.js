@@ -15,6 +15,8 @@
   const WINDOWS_QUICK_MIGRATION = 'windows-quick-v1';
   const WINDOWS_COMPACT_MIGRATION = 'windows-compact-v1';
   const WINDOWS_SERVER_7151_MIGRATION = 'windows-server-7151-v1';
+  const WINDOWS_SERVER_7151_AUTO_MIGRATION = 'windows-server-7151-auto-v1';
+  const WINDOWS_SERVER_7151_FIXED_COMMAND = "ssh -A -T -i \"$env:USERPROFILE\\.ssh\\lab_to_server\" -R 127.0.0.1:2222:127.0.0.1:22 -o IdentitiesOnly=yes -o ExitOnForwardFailure=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 ubuntu@43.156.51.71 'bash /home/ubuntu/disk/htf/windows-remote/hold-tunnel.sh'";
   const LEGACY_WINDOWS_CATEGORIES = ['win-remote-quick', 'win-remote-steps', 'win-remote-use', 'win-remote-errors', 'win-remote-config'];
   const clone = value => JSON.parse(JSON.stringify(value));
   const uid = () => 'id-' + crypto.randomUUID();
@@ -109,9 +111,19 @@
         const currentServer = updatedLibrary.commands.find(c => c.id === 'win-remote-quick-connect');
         if (currentServer?.title === '连接 Windows · 一行重连') currentServer.title = '连接 Windows · 43.134.25.129';
       }
-      if (addCondaCreate || addSshZicp || addWindowsRemote || addCodexLaunch || addCourseCs2680 || addGpuResources || addWindowsQuick || compactWindows || restoreWindowsServer || JSON.stringify(updatedLibrary) !== JSON.stringify(library)) {
+      const autoWindowsServer = !migrations.includes(WINDOWS_SERVER_7151_AUTO_MIGRATION);
+      if (autoWindowsServer) {
+        const command = updatedLibrary.commands.find(c => c.id === 'win-remote-tunnel');
+        const preset = window.COMMAND_LIBRARY.commands.find(c => c.id === 'win-remote-tunnel');
+        if (command?.code === WINDOWS_SERVER_7151_FIXED_COMMAND) {
+          command.code = preset.code;
+          command.description = preset.description;
+          command.note = preset.note;
+        }
+      }
+      if (addCondaCreate || addSshZicp || addWindowsRemote || addCodexLaunch || addCourseCs2680 || addGpuResources || addWindowsQuick || compactWindows || restoreWindowsServer || autoWindowsServer || JSON.stringify(updatedLibrary) !== JSON.stringify(library)) {
         const updated = { ...record, library: updatedLibrary, updatedAt: new Date().toISOString() };
-        updated.migrations = [...migrations, ...(addCondaCreate ? [CONDA_CREATE_MIGRATION] : []), ...(addSshZicp ? [SSH_ZICP_MIGRATION] : []), ...(addWindowsRemote ? [WINDOWS_REMOTE_MIGRATION] : []), ...(addCodexLaunch ? [CODEX_LAUNCH_MIGRATION] : []), ...(addCourseCs2680 ? [COURSE_CS2680_MIGRATION] : []), ...(addGpuResources ? [GPU_RESOURCES_MIGRATION] : []), ...(addWindowsQuick ? [WINDOWS_QUICK_MIGRATION] : []), ...(compactWindows ? [WINDOWS_COMPACT_MIGRATION] : []), ...(restoreWindowsServer ? [WINDOWS_SERVER_7151_MIGRATION] : [])];
+        updated.migrations = [...migrations, ...(addCondaCreate ? [CONDA_CREATE_MIGRATION] : []), ...(addSshZicp ? [SSH_ZICP_MIGRATION] : []), ...(addWindowsRemote ? [WINDOWS_REMOTE_MIGRATION] : []), ...(addCodexLaunch ? [CODEX_LAUNCH_MIGRATION] : []), ...(addCourseCs2680 ? [COURSE_CS2680_MIGRATION] : []), ...(addGpuResources ? [GPU_RESOURCES_MIGRATION] : []), ...(addWindowsQuick ? [WINDOWS_QUICK_MIGRATION] : []), ...(compactWindows ? [WINDOWS_COMPACT_MIGRATION] : []), ...(restoreWindowsServer ? [WINDOWS_SERVER_7151_MIGRATION] : []), ...(autoWindowsServer ? [WINDOWS_SERVER_7151_AUTO_MIGRATION] : [])];
         const serialized = JSON.stringify(updated);
         if (localStorage.getItem(KEY) !== snapshot) throw new Error('命令库已在其他标签页更新');
         localStorage.setItem(KEY, serialized);
@@ -150,7 +162,7 @@
       unlocked = false; render();
       throw new Error('另一个标签页已更新命令库。请先导出当前内容，再刷新页面后重试，避免覆盖更新。');
     }
-    const nextRecord = { ...record, version: 2, library: M.validate(nextLibrary), lock, updatedAt: new Date().toISOString(), migrations: record?.migrations || [WINDOWS_REMOTE_MIGRATION, CODEX_LAUNCH_MIGRATION, COURSE_CS2680_MIGRATION, GPU_RESOURCES_MIGRATION, WINDOWS_QUICK_MIGRATION, WINDOWS_COMPACT_MIGRATION, WINDOWS_SERVER_7151_MIGRATION] };
+    const nextRecord = { ...record, version: 2, library: M.validate(nextLibrary), lock, updatedAt: new Date().toISOString(), migrations: record?.migrations || [WINDOWS_REMOTE_MIGRATION, CODEX_LAUNCH_MIGRATION, COURSE_CS2680_MIGRATION, GPU_RESOURCES_MIGRATION, WINDOWS_QUICK_MIGRATION, WINDOWS_COMPACT_MIGRATION, WINDOWS_SERVER_7151_MIGRATION, WINDOWS_SERVER_7151_AUTO_MIGRATION] };
     const serialized = JSON.stringify(nextRecord);
     try { localStorage.setItem(KEY, serialized); }
     catch { throw new Error('保存失败，浏览器空间可能不足。本次修改未生效，请先导出备份。'); }

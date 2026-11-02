@@ -21,7 +21,7 @@ const root=path.resolve(__dirname,'..');
   await page.locator('[data-command="win-remote-quick-connect"] .copy').click();
   assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),String.raw`ssh -T -i "$env:USERPROFILE\.ssh\lab_to_server" -o StrictHostKeyChecking=yes ubuntu@43.134.25.129 "cat /home/ubuntu/disk/htf/windows-remote/connect-windows.ps1" | Out-String | Invoke-Expression`);
   await page.locator('[data-command="win-remote-tunnel"] .copy').click();
-  assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),String.raw`ssh -A -T -i "$env:USERPROFILE\.ssh\lab_to_server" -R 127.0.0.1:2222:127.0.0.1:22 -o IdentitiesOnly=yes -o ExitOnForwardFailure=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 ubuntu@43.156.51.71 'bash /home/ubuntu/disk/htf/windows-remote/hold-tunnel.sh'`);
+  assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),String.raw`ssh -T -i "$env:USERPROFILE\.ssh\lab_to_server" -o StrictHostKeyChecking=yes ubuntu@43.156.51.71 "cat /home/ubuntu/disk/htf/windows-remote/connect-windows.ps1" | Out-String | Invoke-Expression`);
   await page.locator('[data-command="win-remote-services"] .copy').click();
   assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),'Get-Service sshd,ssh-agent | Select-Object Name,Status,StartType');
   await page.locator('[data-command="win-remote-start-services"] .copy').click();
@@ -136,6 +136,29 @@ const root=path.resolve(__dirname,'..');
   await page.reload();saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('htf-command-desk-v2')));
   assert.equal(saved.library.commands.some(c=>c.id==='win-remote-tunnel'),false);
   assert.equal(saved.migrations.filter(v=>v==='windows-server-7151-v1').length,1);
+  // Upgrade the original fixed-port preset, preserving credentials and custom code.
+  const fixed7151=legacy.commands.find(c=>c.id==='win-remote-tunnel').code;
+  await page.evaluate(fixed=>{
+   const key='htf-command-desk-v2',r=JSON.parse(localStorage.getItem(key));
+   r.library.commands.push({...window.COMMAND_LIBRARY.commands.find(c=>c.id==='win-remote-tunnel'),code:fixed});
+   r.migrations=r.migrations.filter(v=>v!=='windows-server-7151-auto-v1');
+   localStorage.setItem(key,JSON.stringify(r));
+  },fixed7151);
+  await page.reload();saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('htf-command-desk-v2')));
+  const auto7151=await page.evaluate(()=>window.COMMAND_LIBRARY.commands.find(c=>c.id==='win-remote-tunnel'));
+  assert.equal(saved.library.commands.find(c=>c.id==='win-remote-tunnel').code,auto7151.code);
+  assert.equal(saved.library.commands.find(c=>c.id==='win-remote-tunnel').note,auto7151.note);
+  assert.equal(saved.migrations.filter(v=>v==='windows-server-7151-auto-v1').length,1);
+  assert.equal(saved.lock.hash,'retained-hash');
+  await page.evaluate(()=>{
+   const key='htf-command-desk-v2',r=JSON.parse(localStorage.getItem(key));
+   r.library.commands.find(c=>c.id==='win-remote-tunnel').code='my custom server connection';
+   r.migrations=r.migrations.filter(v=>v!=='windows-server-7151-auto-v1');
+   localStorage.setItem(key,JSON.stringify(r));
+  });
+  await page.reload();saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('htf-command-desk-v2')));
+  assert.equal(saved.library.commands.find(c=>c.id==='win-remote-tunnel').code,'my custom server connection');
+  assert.equal(saved.migrations.filter(v=>v==='windows-server-7151-auto-v1').length,1);
   assert.deepEqual(errors,[]);
   console.log('PASS: compact six-card Windows section, exact clipboard, mobile, old links/layout and saved legacy library migration preserve custom commands, lock and deletions');
  }finally{await browser.close();server.close();}
