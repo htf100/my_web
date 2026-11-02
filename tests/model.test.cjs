@@ -4,7 +4,7 @@ const fs=require('node:fs'),vm=require('node:vm');
 const M=require('../model.js');
 const ctx={window:{}};vm.runInNewContext(fs.readFileSync(require.resolve('../commands.js'),'utf8'),ctx);
 const seed=()=>M.validate(ctx.window.COMMAND_LIBRARY);
-test('preserves every source command across hierarchical categories',()=>{const l=seed();assert.equal(l.commands.length,98);assert.equal(l.categories.length,47);assert.equal(M.ordered(l).length,47);assert.equal(M.descendants(l,'server-root').size,10);assert.equal(M.path(l,'mosh'),'服务器 / 连接与环境 / Mosh 远程连接');assert.deepEqual(Array.from(l.categories.filter(c=>c.parent===null&&c.id.startsWith('htf-')),c=>c.id),['htf-env','htf-vision','htf-learning','htf-ops','htf-web']);});
+test('preserves every source command across hierarchical categories',()=>{const l=seed();assert.equal(l.commands.length,99);assert.equal(l.categories.length,47);assert.equal(M.ordered(l).length,47);assert.equal(M.descendants(l,'server-root').size,10);assert.equal(M.path(l,'mosh'),'服务器 / 连接与环境 / Mosh 远程连接');assert.deepEqual(Array.from(l.categories.filter(c=>c.parent===null&&c.id.startsWith('htf-')),c=>c.id),['htf-env','htf-vision','htf-learning','htf-ops','htf-web']);});
 test('includes the supplied SSH host, port, and username',()=>{const l=seed(),command=l.commands.find(c=>c.id==='connect-ssh-zicp');assert.equal(M.path(l,command.category),'服务器 / 连接与环境');assert.equal(command.code,'ssh -p 12793 hutianfang@55e844v521.zicp.fun');});
 test('includes the server Conda activation command with the supplied path',()=>{const l=seed();const command=l.commands.find(c=>c.id==='htf-conda-01');assert.equal(M.path(l,command.category),'Python 环境 / Conda · maskdino310');assert.equal(command.code,'source "/mnt/sda1/htf/software/miniforge3/etc/profile.d/conda.sh"\nconda activate maskdino310');});
 test('provides separate Linux and Windows commands for a new Conda environment',()=>{const l=seed();const linux=l.commands.find(c=>c.id==='htf-conda-create-linux'),windows=l.commands.find(c=>c.id==='htf-conda-create-windows');assert.equal(M.path(l,linux.category),'Python 环境 / 新建 Conda 环境');assert.equal(windows.category,linux.category);assert.match(linux.code,/source "\/mnt\/sda1\/htf\/software\/miniforge3\/etc\/profile\.d\/conda\.sh"/);assert.match(linux.code,/conda create -n "\$ENV_NAME" python=3\.10/);assert.match(windows.code,/conda create -n your_new_env python=3\.10/);assert.doesNotMatch(windows.code,/source/);});
@@ -17,7 +17,7 @@ test('rejects cycles, excessive depth, duplicates, and orphan commands',()=>{
 test('moves commands across categories and preserves exact multiline content',()=>{
  const l=seed(),a=l.commands[0],b=l.commands[1];const content=a.code;
  M.move(l,a.id,b.category,b.id);assert.equal(l.commands.find(c=>c.id===a.id).category,b.category);assert.equal(l.commands.findIndex(c=>c.id===a.id)+1,l.commands.findIndex(c=>c.id===b.id));assert.equal(l.commands.find(c=>c.id===a.id).code,content);assert.doesNotThrow(()=>M.validate(l));
- M.move(l,a.id,b.category);assert.equal(l.commands.at(-1).id,a.id);assert.equal(l.commands.length,98);
+ M.move(l,a.id,b.category);assert.equal(l.commands.at(-1).id,a.id);assert.equal(l.commands.length,99);
 });
 
 test('merges only missing project entries without overwriting edits or restoring deleted old commands',()=>{
@@ -75,9 +75,9 @@ test('compacts legacy Windows cards while preserving custom content and deleted 
  assert.equal(result.commands.find(c=>c.id==='win-remote-quick-connect').note,template.commands.find(c=>c.id==='win-remote-quick-connect').note);
  assert.equal(result.commands.some(c=>c.id==='win-remote-quick-verify'),false);
  assert.equal(result.commands.some(c=>c.id==='win-remote-error-forward'),false);
- assert.equal(result.commands.some(c=>c.id==='win-remote-tunnel'),false);
+ assert.equal(result.commands.some(c=>c.id==='win-remote-tunnel'),true);
  assert.equal(result.commands.filter(c=>c.id==='win-remote-start-services').length,1);
- assert.deepEqual(result.commands.filter(c=>c.category==='win-remote-root').map(c=>c.id),['win-remote-quick-connect','win-remote-services','win-remote-start-services','win-remote-quick-list','custom-win-command']);
+ assert.deepEqual(result.commands.filter(c=>c.category==='win-remote-root').map(c=>c.id),['win-remote-quick-connect','win-remote-tunnel','win-remote-services','win-remote-start-services','win-remote-quick-list','custom-win-command']);
  assert.deepEqual(M.compactWindowsRemote(result,template),result);
 });
 test('does not recreate a deleted Windows category during compaction',()=>{

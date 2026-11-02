@@ -1284,7 +1284,7 @@ window.COMMAND_LIBRARY = {
     },
     {
       "id": "win-remote-quick-connect",
-      "title": "连接 Windows · 一行重连",
+      "title": "连接 Windows · 43.134.25.129",
       "description": "在 Windows 普通 PowerShell 执行，连接到 43.134.25.129，自动选择空闲端口。",
       "code": "ssh -T -i \"$env:USERPROFILE\\.ssh\\lab_to_server\" -o StrictHostKeyChecking=yes ubuntu@43.134.25.129 \"cat /home/ubuntu/disk/htf/windows-remote/connect-windows.ps1\" | Out-String | Invoke-Expression",
       "note": "需已有 lab_to_server、lab_reverse_tunnel 两把密钥，且 sshd、ssh-agent 正在运行。看到 Windows ready 后保持窗口打开；Ctrl+C 或关闭窗口会断开。端口以本次输出为准。",
@@ -1293,6 +1293,18 @@ window.COMMAND_LIBRARY = {
       "environment": "server",
       "warning": false,
       "category": "win-remote-root"
+    },
+    {
+      "id": "win-remote-tunnel",
+      "category": "win-remote-root",
+      "title": "连接 Windows · 43.156.51.71",
+      "code": "ssh -A -T -i \"$env:USERPROFILE\\.ssh\\lab_to_server\" -R 127.0.0.1:2222:127.0.0.1:22 -o IdentitiesOnly=yes -o ExitOnForwardFailure=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 ubuntu@43.156.51.71 'bash /home/ubuntu/disk/htf/windows-remote/hold-tunnel.sh'",
+      "environment": "server",
+      "description": "在 Windows 普通 PowerShell 执行，连接到 43.156.51.71，使用固定端口 2222。",
+      "note": "需 sshd、ssh-agent 正在运行，且 Windows Agent 已加载 lab_reverse_tunnel；未加载时先执行 ssh-add \"$env:USERPROFILE\\.ssh\\lab_reverse_tunnel\"。看到 Windows Agent ready 后保持窗口打开。",
+      "context": "Windows · 普通 PowerShell",
+      "language": "PowerShell",
+      "warning": false
     },
     {
       "id": "win-remote-services",

@@ -123,7 +123,7 @@
     const oldCategories = new Set(['win-remote-quick', 'win-remote-steps', 'win-remote-use', 'win-remote-errors', 'win-remote-config']);
     const retired = new Set([
       'win-remote-overview', 'win-remote-start-agent', 'win-remote-start-sshd',
-      'win-remote-list-keys', 'win-remote-load-key', 'win-remote-tunnel',
+      'win-remote-list-keys', 'win-remote-load-key',
       'win-remote-verify', 'win-remote-verify-prompt', 'win-remote-powershell',
       'win-remote-task-prompts', 'win-remote-error-socket', 'win-remote-error-key',
       'win-remote-error-forward', 'win-remote-error-host-key', 'win-remote-error-network',

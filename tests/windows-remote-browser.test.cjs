@@ -14,12 +14,14 @@ const root=path.resolve(__dirname,'..');
   await page.goto(origin+'/#win-remote-quick');
   await page.waitForSelector('[data-command="win-remote-quick-connect"]');
   await page.locator('[data-count="1"]').click();
-  assert.equal(await page.locator('.card').count(),5);
+  assert.equal(await page.locator('.card').count(),6);
   assert.equal(await page.getByLabel('第 1 栏分类',{exact:true}).inputValue(),'win-remote-root');
   assert.equal(await page.evaluate(()=>window.CommandModel.path(window.COMMAND_LIBRARY,'win-remote-root')),'服务器 / Windows 远程访问');
   assert.equal(await page.evaluate(()=>window.COMMAND_LIBRARY.categories.filter(c=>c.id.startsWith('win-remote-')).length),1);
   await page.locator('[data-command="win-remote-quick-connect"] .copy').click();
   assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),String.raw`ssh -T -i "$env:USERPROFILE\.ssh\lab_to_server" -o StrictHostKeyChecking=yes ubuntu@43.134.25.129 "cat /home/ubuntu/disk/htf/windows-remote/connect-windows.ps1" | Out-String | Invoke-Expression`);
+  await page.locator('[data-command="win-remote-tunnel"] .copy').click();
+  assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),String.raw`ssh -A -T -i "$env:USERPROFILE\.ssh\lab_to_server" -R 127.0.0.1:2222:127.0.0.1:22 -o IdentitiesOnly=yes -o ExitOnForwardFailure=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 ubuntu@43.156.51.71 'bash /home/ubuntu/disk/htf/windows-remote/hold-tunnel.sh'`);
   await page.locator('[data-command="win-remote-services"] .copy').click();
   assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),'Get-Service sshd,ssh-agent | Select-Object Name,Status,StartType');
   await page.locator('[data-command="win-remote-start-services"] .copy').click();
@@ -64,7 +66,7 @@ const root=path.resolve(__dirname,'..');
   assert.equal(await page.evaluate(()=>window.CommandModel.path(window.COMMAND_LIBRARY,'codex-launch')),'服务器 / 连接与环境 / Codex 启动配置');
   await page.locator('[data-command="codex-launch-network"] .copy').click();
   assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),'codex --sandbox workspace-write -c sandbox_workspace_write.network_access=true');
-  // A browser with no prior Windows additions receives the current five cards.
+  // A browser with no prior Windows additions receives the current six cards.
   await page.evaluate(()=>{
    const library=JSON.parse(JSON.stringify(window.COMMAND_LIBRARY));
    library.categories=library.categories.filter(c=>!c.id.startsWith('win-remote-'));
@@ -75,7 +77,7 @@ const root=path.resolve(__dirname,'..');
   await page.goto(origin+'/?upgrade=first#win-remote-root');
   await page.waitForSelector('[data-command="win-remote-quick-connect"]');
   let saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('htf-command-desk-v2')));
-  assert.equal(saved.library.commands.filter(c=>c.id.startsWith('win-remote-')).length,5);
+  assert.equal(saved.library.commands.filter(c=>c.id.startsWith('win-remote-')).length,6);
   assert.equal(saved.library.commands.find(c=>c.id==='connect-01').code,'my custom connection');
   assert.equal(saved.library.commands.some(c=>c.id==='connect-02'),false);
   assert.equal(saved.lock.hash,'retained-hash');assert.equal(saved.lock.salt,'retained-salt');
@@ -104,7 +106,7 @@ const root=path.resolve(__dirname,'..');
   assert.equal(saved.library.commands.find(c=>c.id==='connect-01').code,'my custom connection');
   assert.equal(saved.library.commands.some(c=>c.id==='win-remote-quick-verify'),false);
   assert.equal(saved.library.commands.some(c=>c.id==='win-remote-error-forward'),false);
-  assert.equal(saved.library.commands.some(c=>c.id==='win-remote-tunnel'),false);
+  assert.equal(saved.library.commands.some(c=>c.id==='win-remote-tunnel'),true);
   assert.equal(saved.lock.hash,'retained-hash');assert.equal(saved.lock.salt,'retained-salt');
   assert.equal(saved.migrations.filter(v=>v==='windows-compact-v1').length,1);
   await page.evaluate(()=>{
@@ -116,7 +118,25 @@ const root=path.resolve(__dirname,'..');
   assert.equal(saved.library.commands.some(c=>c.id==='win-remote-start-services'),false);
   assert.equal(saved.library.commands.some(c=>c.id==='win-remote-quick-connect'),false);
   assert.equal(saved.migrations.filter(v=>v==='windows-compact-v1').length,1);
+  // Restore the 43.156.51.71 command in browsers already compacted to five cards.
+  await page.evaluate(()=>{
+   const key='htf-command-desk-v2',r=JSON.parse(localStorage.getItem(key));
+   r.library.commands=r.library.commands.filter(c=>c.id!=='win-remote-tunnel');
+   r.migrations=r.migrations.filter(v=>v!=='windows-server-7151-v1');
+   localStorage.setItem(key,JSON.stringify(r));
+  });
+  await page.reload();await page.waitForSelector('[data-command="win-remote-tunnel"]');
+  saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('htf-command-desk-v2')));
+  assert.equal(saved.library.commands.filter(c=>c.id==='win-remote-tunnel').length,1);
+  assert.equal(saved.migrations.filter(v=>v==='windows-server-7151-v1').length,1);
+  assert.equal(saved.library.commands.some(c=>c.id==='win-remote-quick-connect'),false);
+  assert.equal(saved.library.commands.find(c=>c.id==='connect-01').code,'my custom connection');
+  assert.equal(saved.lock.hash,'retained-hash');
+  await page.evaluate(()=>{const key='htf-command-desk-v2',r=JSON.parse(localStorage.getItem(key));r.library.commands=r.library.commands.filter(c=>c.id!=='win-remote-tunnel');localStorage.setItem(key,JSON.stringify(r));});
+  await page.reload();saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('htf-command-desk-v2')));
+  assert.equal(saved.library.commands.some(c=>c.id==='win-remote-tunnel'),false);
+  assert.equal(saved.migrations.filter(v=>v==='windows-server-7151-v1').length,1);
   assert.deepEqual(errors,[]);
-  console.log('PASS: compact five-card Windows section, exact clipboard, mobile, old links/layout and saved legacy library migration preserve custom commands, lock and deletions');
+  console.log('PASS: compact six-card Windows section, exact clipboard, mobile, old links/layout and saved legacy library migration preserve custom commands, lock and deletions');
  }finally{await browser.close();server.close();}
 })().catch(e=>{console.error(e);process.exit(1)});
