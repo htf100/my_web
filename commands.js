@@ -222,6 +222,11 @@ window.COMMAND_LIBRARY = {
       "parent": "server-root"
     },
     {
+      "id": "win-remote-quick",
+      "label": "当前服务器 · 一行重连",
+      "parent": "win-remote-root"
+    },
+    {
       "id": "win-remote-steps",
       "label": "重连四步",
       "parent": "win-remote-root"
@@ -1301,6 +1306,42 @@ window.COMMAND_LIBRARY = {
       "context": "Ubuntu 终端",
       "note": "此服务器已使用仓库专属 GitHub 登录目录；其他电脑可在自己的 gh 登录环境中执行，不需要复制鉴权文件。",
       "warning": false
+    },
+    {
+      "id": "win-remote-quick-connect",
+      "title": "Windows 反向 SSH · 一行重连",
+      "description": "在 Windows 普通 PowerShell 执行：读取服务器上准备好的脚本并运行，自动选择空闲端口、登记当前电脑。",
+      "code": "ssh -T -i \"$env:USERPROFILE\\.ssh\\lab_to_server\" -o StrictHostKeyChecking=yes ubuntu@43.134.25.129 \"cat /home/ubuntu/disk/htf/windows-remote/connect-windows.ps1\" | Out-String | Invoke-Expression",
+      "note": "当前服务器为 43.134.25.129；需要已有 lab_to_server、lab_reverse_tunnel 两把密钥，以及运行中的 sshd、ssh-agent。脚本会按需加载反向认证密钥，从本机 SSH 服务读取公开主机指纹，无需读取受限的系统主机密钥文件。\n看到 Windows ready、Reverse SSH port 和 Keep this Windows SSH window open 后保持窗口打开；端口每次可能不同，以本次输出为准。关闭窗口或 Ctrl+C 会断开。\n这条命令在 Windows PowerShell 中运行；服务器里的 tmux 可继续保持。脚本支持多台电脑分别登记，保留严格主机校验，不停止已有隧道。",
+      "context": "Windows · 普通 PowerShell",
+      "language": "PowerShell",
+      "environment": "server",
+      "warning": false,
+      "category": "win-remote-quick"
+    },
+    {
+      "id": "win-remote-quick-list",
+      "title": "服务器 · 查看已连接的 Windows 电脑",
+      "description": "在 43.134.25.129 的 Linux 终端或 tmux 中查看已登记的活动隧道。",
+      "code": "/home/ubuntu/disk/htf/windows-remote/win-ssh.sh --list",
+      "note": "每行显示端口、电脑名、Windows 用户及登记时间；没有活动连接时会明确提示。此命令在 Linux 服务器运行。需要实际验证访问时，使用下一条命令。",
+      "context": "Linux · 服务器终端 / tmux",
+      "language": "Bash",
+      "environment": "server",
+      "warning": false,
+      "category": "win-remote-quick"
+    },
+    {
+      "id": "win-remote-quick-verify",
+      "title": "服务器 · 验证指定 Windows 隧道",
+      "description": "输入 Windows 连接窗口显示的端口，实际执行 hostname 和 whoami，确认能够访问这台电脑。",
+      "code": "read -r -p \"Windows 隧道端口：\" WIN_TUNNEL_PORT\n/home/ubuntu/disk/htf/windows-remote/win-ssh.sh --port \"$WIN_TUNNEL_PORT\" hostname\n/home/ubuntu/disk/htf/windows-remote/win-ssh.sh --port \"$WIN_TUNNEL_PORT\" whoami",
+      "note": "在 Linux Bash 或服务器 tmux 中执行。端口取自本次 Reverse SSH port 提示或上一条 --list 输出，不固定为 22336。多台电脑连接时，通过 --port 选择要操作的一台。",
+      "context": "Linux · 服务器 Bash / tmux",
+      "language": "Bash",
+      "environment": "server",
+      "warning": false,
+      "category": "win-remote-quick"
     },
     {
       "id": "win-remote-overview",
