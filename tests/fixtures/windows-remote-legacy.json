@@ -1,0 +1,183 @@
+{
+  "categories": [
+    {
+      "id": "win-remote-root",
+      "label": "Windows 远程访问",
+      "parent": "server-root"
+    },
+    {
+      "id": "win-remote-quick",
+      "label": "当前服务器 · 一行重连",
+      "parent": "win-remote-root"
+    },
+    {
+      "id": "win-remote-steps",
+      "label": "重连四步",
+      "parent": "win-remote-root"
+    },
+    {
+      "id": "win-remote-use",
+      "label": "连接后使用",
+      "parent": "win-remote-root"
+    },
+    {
+      "id": "win-remote-errors",
+      "label": "重连失败处理",
+      "parent": "win-remote-root"
+    },
+    {
+      "id": "win-remote-config",
+      "label": "配置与约束",
+      "parent": "win-remote-root"
+    }
+  ],
+  "commands": [
+    {
+      "id": "win-remote-quick-connect",
+      "category": "win-remote-quick",
+      "title": "Windows 反向 SSH · 一行重连",
+      "code": "ssh -T -i \"$env:USERPROFILE\\.ssh\\lab_to_server\" -o StrictHostKeyChecking=yes ubuntu@43.134.25.129 \"cat /home/ubuntu/disk/htf/windows-remote/connect-windows.ps1\" | Out-String | Invoke-Expression",
+      "environment": "server"
+    },
+    {
+      "id": "win-remote-quick-list",
+      "category": "win-remote-quick",
+      "title": "服务器 · 查看已连接的 Windows 电脑",
+      "code": "/home/ubuntu/disk/htf/windows-remote/win-ssh.sh --list",
+      "environment": "server"
+    },
+    {
+      "id": "win-remote-quick-verify",
+      "category": "win-remote-quick",
+      "title": "服务器 · 验证指定 Windows 隧道",
+      "code": "read -r -p \"Windows 隧道端口：\" WIN_TUNNEL_PORT\n/home/ubuntu/disk/htf/windows-remote/win-ssh.sh --port \"$WIN_TUNNEL_PORT\" hostname\n/home/ubuntu/disk/htf/windows-remote/win-ssh.sh --port \"$WIN_TUNNEL_PORT\" whoami",
+      "environment": "server"
+    },
+    {
+      "id": "win-remote-overview",
+      "category": "win-remote-steps",
+      "title": "开始前 · 断开后怎样恢复",
+      "code": "",
+      "environment": "other"
+    },
+    {
+      "id": "win-remote-services",
+      "category": "win-remote-steps",
+      "title": "第 1 步 · 检查两个 SSH 服务",
+      "code": "Get-Service sshd,ssh-agent | Select-Object Name,Status,StartType",
+      "environment": "other"
+    },
+    {
+      "id": "win-remote-start-agent",
+      "category": "win-remote-steps",
+      "title": "第 1 步 · 启动 ssh-agent",
+      "code": "Start-Service ssh-agent",
+      "environment": "other"
+    },
+    {
+      "id": "win-remote-start-sshd",
+      "category": "win-remote-steps",
+      "title": "第 1 步 · 启动 sshd",
+      "code": "Start-Service sshd",
+      "environment": "other"
+    },
+    {
+      "id": "win-remote-list-keys",
+      "category": "win-remote-steps",
+      "title": "第 2 步 · 确认密钥已加载",
+      "code": "ssh-add -l",
+      "environment": "other"
+    },
+    {
+      "id": "win-remote-load-key",
+      "category": "win-remote-steps",
+      "title": "第 2 步 · 加载 lab_reverse_tunnel",
+      "code": "ssh-add \"$env:USERPROFILE\\.ssh\\lab_reverse_tunnel\"",
+      "environment": "other"
+    },
+    {
+      "id": "win-remote-tunnel",
+      "category": "win-remote-steps",
+      "title": "第 3 步 · 建立隧道并保持窗口打开",
+      "code": "ssh -A -T -i \"$env:USERPROFILE\\.ssh\\lab_to_server\" -R 127.0.0.1:2222:127.0.0.1:22 -o IdentitiesOnly=yes -o ExitOnForwardFailure=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 ubuntu@43.156.51.71 'bash /home/ubuntu/disk/htf/windows-remote/hold-tunnel.sh'",
+      "environment": "other"
+    },
+    {
+      "id": "win-remote-verify",
+      "category": "win-remote-steps",
+      "title": "第 4 步 · Linux 实际验证连接",
+      "code": "/home/ubuntu/disk/htf/windows-remote/win-ssh.sh hostname\n/home/ubuntu/disk/htf/windows-remote/win-ssh.sh whoami",
+      "environment": "server"
+    },
+    {
+      "id": "win-remote-verify-prompt",
+      "category": "win-remote-steps",
+      "title": "第 4 步 · 发给 Codex 的验证提示",
+      "code": "Windows 隧道已重连。请用 /home/ubuntu/disk/htf/windows-remote/win-ssh.sh 执行 hostname 和 whoami，确认可以访问。",
+      "environment": "other"
+    },
+    {
+      "id": "win-remote-powershell",
+      "category": "win-remote-use",
+      "title": "从 Linux 执行 Windows PowerShell",
+      "code": "/home/ubuntu/disk/htf/windows-remote/win-ps.py 'Get-ChildItem -LiteralPath \"C:\\Users\\tfhu\"'",
+      "environment": "server"
+    },
+    {
+      "id": "win-remote-task-prompts",
+      "category": "win-remote-use",
+      "title": "连接后 · 告诉 Codex 要做什么",
+      "code": "查看 C:\\Users\\tfhu 下有哪些文件。\n检查我的 Windows Python 环境。\n修改这个文件：C:\\具体目录\\具体文件。",
+      "environment": "other"
+    },
+    {
+      "id": "win-remote-error-socket",
+      "category": "win-remote-errors",
+      "title": "Windows Agent socket is unavailable",
+      "code": "",
+      "environment": "other"
+    },
+    {
+      "id": "win-remote-error-key",
+      "category": "win-remote-errors",
+      "title": "Agent 中缺少 lab_reverse_tunnel",
+      "code": "",
+      "environment": "other"
+    },
+    {
+      "id": "win-remote-error-forward",
+      "category": "win-remote-errors",
+      "title": "remote port forwarding failed",
+      "code": "",
+      "environment": "other"
+    },
+    {
+      "id": "win-remote-error-host-key",
+      "category": "win-remote-errors",
+      "title": "主机密钥不匹配",
+      "code": "",
+      "environment": "other"
+    },
+    {
+      "id": "win-remote-error-network",
+      "category": "win-remote-errors",
+      "title": "connection refused / timeout",
+      "code": "",
+      "environment": "other"
+    },
+    {
+      "id": "win-remote-config",
+      "category": "win-remote-config",
+      "title": "保留的路径、监听与主机信息",
+      "code": "",
+      "environment": "other"
+    },
+    {
+      "id": "win-remote-key-rules",
+      "category": "win-remote-config",
+      "title": "密钥口令与共享账号的使用约束",
+      "code": "",
+      "environment": "other"
+    }
+  ]
+}

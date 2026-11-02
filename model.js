@@ -116,7 +116,44 @@
     }
     return validate(current);
   }
-  const api = { validate, descendants, path, ordered, move, mergeMissing, reorganizeProjectCategories, MAX_DEPTH };
+  function compactWindowsRemote(library, preset) {
+    const current = validate(library), template = validate(preset);
+    const root = 'win-remote-root';
+    if (!current.categories.some(c => c.id === root)) return current;
+    const oldCategories = new Set(['win-remote-quick', 'win-remote-steps', 'win-remote-use', 'win-remote-errors', 'win-remote-config']);
+    const retired = new Set([
+      'win-remote-overview', 'win-remote-start-agent', 'win-remote-start-sshd',
+      'win-remote-list-keys', 'win-remote-load-key', 'win-remote-tunnel',
+      'win-remote-verify', 'win-remote-verify-prompt', 'win-remote-powershell',
+      'win-remote-task-prompts', 'win-remote-error-socket', 'win-remote-error-key',
+      'win-remote-error-forward', 'win-remote-error-host-key', 'win-remote-error-network',
+      'win-remote-config', 'win-remote-key-rules',
+    ]);
+    const scope = descendants(current, root);
+    const commands = template.commands.filter(c => c.category === root);
+    const byId = new Map(commands.map(c => [c.id, c]));
+    current.commands = current.commands
+      .filter(c => !(scope.has(c.category) && retired.has(c.id)))
+      .map(c => {
+        const replacement = scope.has(c.category) && byId.get(c.id);
+        if (replacement) return { ...replacement, code: c.code };
+        return oldCategories.has(c.category) ? { ...c, category: root } : c;
+      });
+    // Add only the new combined service command; do not restore deleted cards.
+    const service = byId.get('win-remote-start-services');
+    if (service && !current.commands.some(c => c.id === service.id)) current.commands.push({ ...service });
+    current.categories = current.categories
+      .filter(c => !oldCategories.has(c.id))
+      .map(c => oldCategories.has(c.parent) ? { ...c, parent: root } : c);
+    const insertion = current.commands.findIndex(c => c.category === root);
+    const grouped = current.commands.filter(c => c.category === root);
+    const ordered = commands.flatMap(c => grouped.filter(existing => existing.id === c.id));
+    ordered.push(...grouped.filter(c => !byId.has(c.id)));
+    current.commands = current.commands.filter(c => c.category !== root);
+    current.commands.splice(insertion < 0 ? current.commands.length : insertion, 0, ...ordered);
+    return validate(current);
+  }
+  const api = { validate, descendants, path, ordered, move, mergeMissing, reorganizeProjectCategories, compactWindowsRemote, MAX_DEPTH };
   if (typeof module !== 'undefined') module.exports = api;
   else root.CommandModel = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -13,6 +13,8 @@
   const COURSE_CS2680_MIGRATION = 'course-cs2680-v1';
   const GPU_RESOURCES_MIGRATION = 'gpu-resources-v1';
   const WINDOWS_QUICK_MIGRATION = 'windows-quick-v1';
+  const WINDOWS_COMPACT_MIGRATION = 'windows-compact-v1';
+  const LEGACY_WINDOWS_CATEGORIES = ['win-remote-quick', 'win-remote-steps', 'win-remote-use', 'win-remote-errors', 'win-remote-config'];
   const clone = value => JSON.parse(JSON.stringify(value));
   const uid = () => 'id-' + crypto.randomUUID();
   let library = M.validate(window.COMMAND_LIBRARY);
@@ -94,9 +96,11 @@
           commands: window.COMMAND_LIBRARY.commands.filter(c => c.id.startsWith('win-remote-quick-')),
         });
       }
-      if (addCondaCreate || addSshZicp || addWindowsRemote || addCodexLaunch || addCourseCs2680 || addGpuResources || addWindowsQuick || JSON.stringify(updatedLibrary) !== JSON.stringify(library)) {
+      const compactWindows = !migrations.includes(WINDOWS_COMPACT_MIGRATION);
+      if (compactWindows) updatedLibrary = M.compactWindowsRemote(updatedLibrary, window.COMMAND_LIBRARY);
+      if (addCondaCreate || addSshZicp || addWindowsRemote || addCodexLaunch || addCourseCs2680 || addGpuResources || addWindowsQuick || compactWindows || JSON.stringify(updatedLibrary) !== JSON.stringify(library)) {
         const updated = { ...record, library: updatedLibrary, updatedAt: new Date().toISOString() };
-        updated.migrations = [...migrations, ...(addCondaCreate ? [CONDA_CREATE_MIGRATION] : []), ...(addSshZicp ? [SSH_ZICP_MIGRATION] : []), ...(addWindowsRemote ? [WINDOWS_REMOTE_MIGRATION] : []), ...(addCodexLaunch ? [CODEX_LAUNCH_MIGRATION] : []), ...(addCourseCs2680 ? [COURSE_CS2680_MIGRATION] : []), ...(addGpuResources ? [GPU_RESOURCES_MIGRATION] : []), ...(addWindowsQuick ? [WINDOWS_QUICK_MIGRATION] : [])];
+        updated.migrations = [...migrations, ...(addCondaCreate ? [CONDA_CREATE_MIGRATION] : []), ...(addSshZicp ? [SSH_ZICP_MIGRATION] : []), ...(addWindowsRemote ? [WINDOWS_REMOTE_MIGRATION] : []), ...(addCodexLaunch ? [CODEX_LAUNCH_MIGRATION] : []), ...(addCourseCs2680 ? [COURSE_CS2680_MIGRATION] : []), ...(addGpuResources ? [GPU_RESOURCES_MIGRATION] : []), ...(addWindowsQuick ? [WINDOWS_QUICK_MIGRATION] : []), ...(compactWindows ? [WINDOWS_COMPACT_MIGRATION] : [])];
         const serialized = JSON.stringify(updated);
         if (localStorage.getItem(KEY) !== snapshot) throw new Error('命令库已在其他标签页更新');
         localStorage.setItem(KEY, serialized);
@@ -118,7 +122,7 @@
     if (saved && [1, 2, 3, 4].includes(saved.count) && Array.isArray(saved.panels)) {
       view.count = saved.count;
       view.panels = Array.from({ length: 4 }, (_, i) => {
-        const id = saved.panels[i];
+        const id = LEGACY_WINDOWS_CATEGORIES.includes(saved.panels[i]) ? 'win-remote-root' : saved.panels[i];
         return id === 'all' || library.categories.some(c => c.id === id) ? id : 'all';
       });
       view.collapsed = Array.isArray(saved.collapsed) ? saved.collapsed.filter(id => typeof id === 'string') : [];
@@ -135,7 +139,7 @@
       unlocked = false; render();
       throw new Error('另一个标签页已更新命令库。请先导出当前内容，再刷新页面后重试，避免覆盖更新。');
     }
-    const nextRecord = { ...record, version: 2, library: M.validate(nextLibrary), lock, updatedAt: new Date().toISOString(), migrations: record?.migrations || [WINDOWS_REMOTE_MIGRATION, CODEX_LAUNCH_MIGRATION, COURSE_CS2680_MIGRATION, GPU_RESOURCES_MIGRATION, WINDOWS_QUICK_MIGRATION] };
+    const nextRecord = { ...record, version: 2, library: M.validate(nextLibrary), lock, updatedAt: new Date().toISOString(), migrations: record?.migrations || [WINDOWS_REMOTE_MIGRATION, CODEX_LAUNCH_MIGRATION, COURSE_CS2680_MIGRATION, GPU_RESOURCES_MIGRATION, WINDOWS_QUICK_MIGRATION, WINDOWS_COMPACT_MIGRATION] };
     const serialized = JSON.stringify(nextRecord);
     try { localStorage.setItem(KEY, serialized); }
     catch { throw new Error('保存失败，浏览器空间可能不足。本次修改未生效，请先导出备份。'); }
@@ -596,6 +600,7 @@
   function openLinkedCategory() {
     let id;
     try { id = decodeURIComponent(location.hash.slice(1)); } catch { return; }
+    if (LEGACY_WINDOWS_CATEGORIES.includes(id)) id = 'win-remote-root';
     if (!library.categories.some(c => c.id === id)) return;
     active = 0; view.panels[0] = id;
     let category = library.categories.find(c => c.id === id);
