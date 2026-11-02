@@ -1,6 +1,8 @@
 (function (root) {
   'use strict';
   const MAX_DEPTH = 6;
+  const LEGACY_WINDOWS_CATEGORIES = ['win-remote-quick', 'win-remote-steps', 'win-remote-use', 'win-remote-errors', 'win-remote-config'];
+
   function validate(input) {
     if (!input || !Array.isArray(input.categories) || !Array.isArray(input.commands)) throw new Error('备份必须包含 categories 和 commands 数组。');
     if (input.categories.length > 500 || input.commands.length > 5000) throw new Error('最多支持 500 个分类和 5000 条命令。');
@@ -120,7 +122,7 @@
     const current = validate(library), template = validate(preset);
     const root = 'win-remote-root';
     if (!current.categories.some(c => c.id === root)) return current;
-    const oldCategories = new Set(['win-remote-quick', 'win-remote-steps', 'win-remote-use', 'win-remote-errors', 'win-remote-config']);
+    const oldCategories = new Set(LEGACY_WINDOWS_CATEGORIES);
     const retired = new Set([
       'win-remote-overview', 'win-remote-start-agent', 'win-remote-start-sshd',
       'win-remote-list-keys', 'win-remote-load-key',
@@ -153,7 +155,7 @@
     current.commands.splice(insertion < 0 ? current.commands.length : insertion, 0, ...ordered);
     return validate(current);
   }
-  const api = { validate, descendants, path, ordered, move, mergeMissing, reorganizeProjectCategories, compactWindowsRemote, MAX_DEPTH };
+  const api = { validate, descendants, path, ordered, move, mergeMissing, reorganizeProjectCategories, compactWindowsRemote, MAX_DEPTH, LEGACY_WINDOWS_CATEGORIES };
   if (typeof module !== 'undefined') module.exports = api;
   else root.CommandModel = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -17,7 +17,6 @@
   const WINDOWS_SERVER_7151_MIGRATION = 'windows-server-7151-v1';
   const WINDOWS_SERVER_7151_AUTO_MIGRATION = 'windows-server-7151-auto-v1';
   const WINDOWS_SERVER_7151_FIXED_COMMAND = "ssh -A -T -i \"$env:USERPROFILE\\.ssh\\lab_to_server\" -R 127.0.0.1:2222:127.0.0.1:22 -o IdentitiesOnly=yes -o ExitOnForwardFailure=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 ubuntu@43.156.51.71 'bash /home/ubuntu/disk/htf/windows-remote/hold-tunnel.sh'";
-  const LEGACY_WINDOWS_CATEGORIES = ['win-remote-quick', 'win-remote-steps', 'win-remote-use', 'win-remote-errors', 'win-remote-config'];
   const clone = value => JSON.parse(JSON.stringify(value));
   const uid = () => 'id-' + crypto.randomUUID();
   let library = M.validate(window.COMMAND_LIBRARY);
@@ -49,70 +48,38 @@
       if (!record || record.version !== 2 || !record.lock || typeof record.lock.hash !== 'string' || typeof record.lock.salt !== 'string') throw new Error('保存格式不正确');
       library = M.validate(record.library);
       let updatedLibrary = M.reorganizeProjectCategories(library, window.COMMAND_LIBRARY);
-      const migrations = Array.isArray(record.migrations) ? record.migrations : [];
-      const addCondaCreate = !migrations.includes(CONDA_CREATE_MIGRATION) && updatedLibrary.categories.some(c => c.id === 'htf-env');
-      if (addCondaCreate) {
+      const migrations = Array.isArray(record.migrations) ? [...record.migrations] : [];
+      const previousMigrationCount = migrations.length;
+      const migrate = (id, apply, enabled = true) => {
+        if (!enabled || migrations.includes(id)) return;
+        apply(); migrations.push(id);
+      };
+      const mergePresets = (categories, commands) => {
         updatedLibrary = M.mergeMissing(updatedLibrary, {
-          categories: projectPack.categories.filter(c => c.id === 'htf-env' || c.id === 'htf-conda-create'),
-          commands: projectPack.commands.filter(c => c.id.startsWith('htf-conda-create-')),
+          categories: window.COMMAND_LIBRARY.categories.filter(c => categories.includes(c.id)),
+          commands: window.COMMAND_LIBRARY.commands.filter(commands),
         });
+      };
+      const additions = [
+        [CONDA_CREATE_MIGRATION, ['htf-env', 'htf-conda-create'], c => c.id.startsWith('htf-conda-create-'), 'htf-env'],
+        [SSH_ZICP_MIGRATION, ['server-root', 'connection'], c => c.id === 'connect-ssh-zicp', 'connection'],
+        [WINDOWS_REMOTE_MIGRATION, ['server-root', 'win-remote-root'], c => c.id.startsWith('win-remote-')],
+        [CODEX_LAUNCH_MIGRATION, ['server-root', 'connection', 'codex-launch'], c => c.id === 'codex-launch-network'],
+        [COURSE_CS2680_MIGRATION, ['course-root', 'course-cs2680', 'cs2680-task-2'], c => c.id === 'course-cs2680-task2-start'],
+        [GPU_RESOURCES_MIGRATION, ['server-root', 'gpu-resources'], c => c.id.startsWith('gpu-resource-')],
+        [WINDOWS_QUICK_MIGRATION, ['server-root', 'win-remote-root'], c => c.id.startsWith('win-remote-quick-')],
+      ];
+      for (const [id, categories, commands, requiredCategory] of additions) {
+        migrate(id, () => mergePresets(categories, commands), !requiredCategory || updatedLibrary.categories.some(c => c.id === requiredCategory));
       }
-      const addSshZicp = !migrations.includes(SSH_ZICP_MIGRATION) && updatedLibrary.categories.some(c => c.id === 'connection');
-      if (addSshZicp) {
-        updatedLibrary = M.mergeMissing(updatedLibrary, {
-          categories: window.COMMAND_LIBRARY.categories.filter(c => c.id === 'server-root' || c.id === 'connection'),
-          commands: window.COMMAND_LIBRARY.commands.filter(c => c.id === 'connect-ssh-zicp'),
-        });
-      }
-      const addWindowsRemote = !migrations.includes(WINDOWS_REMOTE_MIGRATION);
-      if (addWindowsRemote) {
-        updatedLibrary = M.mergeMissing(updatedLibrary, {
-          categories: window.COMMAND_LIBRARY.categories.filter(c => c.id === 'server-root' || c.id.startsWith('win-remote-')),
-          commands: window.COMMAND_LIBRARY.commands.filter(c => c.id.startsWith('win-remote-')),
-        });
-      }
-      const addCodexLaunch = !migrations.includes(CODEX_LAUNCH_MIGRATION);
-      if (addCodexLaunch) {
-        updatedLibrary = M.mergeMissing(updatedLibrary, {
-          categories: window.COMMAND_LIBRARY.categories.filter(c => ['server-root', 'connection', 'codex-launch'].includes(c.id)),
-          commands: window.COMMAND_LIBRARY.commands.filter(c => c.id === 'codex-launch-network'),
-        });
-      }
-      const addCourseCs2680 = !migrations.includes(COURSE_CS2680_MIGRATION);
-      if (addCourseCs2680) {
-        updatedLibrary = M.mergeMissing(updatedLibrary, {
-          categories: window.COMMAND_LIBRARY.categories.filter(c => ['course-root', 'course-cs2680', 'cs2680-task-2'].includes(c.id)),
-          commands: window.COMMAND_LIBRARY.commands.filter(c => c.id === 'course-cs2680-task2-start'),
-        });
-      }
-      const addGpuResources = !migrations.includes(GPU_RESOURCES_MIGRATION);
-      if (addGpuResources) {
-        updatedLibrary = M.mergeMissing(updatedLibrary, {
-          categories: window.COMMAND_LIBRARY.categories.filter(c => ['server-root', 'gpu-resources'].includes(c.id)),
-          commands: window.COMMAND_LIBRARY.commands.filter(c => c.id.startsWith('gpu-resource-')),
-        });
-      }
-      const addWindowsQuick = !migrations.includes(WINDOWS_QUICK_MIGRATION);
-      if (addWindowsQuick) {
-        updatedLibrary = M.mergeMissing(updatedLibrary, {
-          categories: window.COMMAND_LIBRARY.categories.filter(c => ['server-root', 'win-remote-root', 'win-remote-quick'].includes(c.id)),
-          commands: window.COMMAND_LIBRARY.commands.filter(c => c.id.startsWith('win-remote-quick-')),
-        });
-      }
-      const compactWindows = !migrations.includes(WINDOWS_COMPACT_MIGRATION);
-      if (compactWindows) updatedLibrary = M.compactWindowsRemote(updatedLibrary, window.COMMAND_LIBRARY);
-      const restoreWindowsServer = !migrations.includes(WINDOWS_SERVER_7151_MIGRATION);
-      if (restoreWindowsServer) {
-        updatedLibrary = M.mergeMissing(updatedLibrary, {
-          categories: window.COMMAND_LIBRARY.categories.filter(c => ['server-root', 'win-remote-root'].includes(c.id)),
-          commands: window.COMMAND_LIBRARY.commands.filter(c => c.id === 'win-remote-tunnel'),
-        });
+      migrate(WINDOWS_COMPACT_MIGRATION, () => { updatedLibrary = M.compactWindowsRemote(updatedLibrary, window.COMMAND_LIBRARY); });
+      migrate(WINDOWS_SERVER_7151_MIGRATION, () => {
+        mergePresets(['server-root', 'win-remote-root'], c => c.id === 'win-remote-tunnel');
         M.move(updatedLibrary, 'win-remote-tunnel', 'win-remote-root', 'win-remote-services');
         const currentServer = updatedLibrary.commands.find(c => c.id === 'win-remote-quick-connect');
         if (currentServer?.title === '连接 Windows · 一行重连') currentServer.title = '连接 Windows · 43.134.25.129';
-      }
-      const autoWindowsServer = !migrations.includes(WINDOWS_SERVER_7151_AUTO_MIGRATION);
-      if (autoWindowsServer) {
+      });
+      migrate(WINDOWS_SERVER_7151_AUTO_MIGRATION, () => {
         const command = updatedLibrary.commands.find(c => c.id === 'win-remote-tunnel');
         const preset = window.COMMAND_LIBRARY.commands.find(c => c.id === 'win-remote-tunnel');
         if (command?.code === WINDOWS_SERVER_7151_FIXED_COMMAND) {
@@ -120,10 +87,9 @@
           command.description = preset.description;
           command.note = preset.note;
         }
-      }
-      if (addCondaCreate || addSshZicp || addWindowsRemote || addCodexLaunch || addCourseCs2680 || addGpuResources || addWindowsQuick || compactWindows || restoreWindowsServer || autoWindowsServer || JSON.stringify(updatedLibrary) !== JSON.stringify(library)) {
-        const updated = { ...record, library: updatedLibrary, updatedAt: new Date().toISOString() };
-        updated.migrations = [...migrations, ...(addCondaCreate ? [CONDA_CREATE_MIGRATION] : []), ...(addSshZicp ? [SSH_ZICP_MIGRATION] : []), ...(addWindowsRemote ? [WINDOWS_REMOTE_MIGRATION] : []), ...(addCodexLaunch ? [CODEX_LAUNCH_MIGRATION] : []), ...(addCourseCs2680 ? [COURSE_CS2680_MIGRATION] : []), ...(addGpuResources ? [GPU_RESOURCES_MIGRATION] : []), ...(addWindowsQuick ? [WINDOWS_QUICK_MIGRATION] : []), ...(compactWindows ? [WINDOWS_COMPACT_MIGRATION] : []), ...(restoreWindowsServer ? [WINDOWS_SERVER_7151_MIGRATION] : []), ...(autoWindowsServer ? [WINDOWS_SERVER_7151_AUTO_MIGRATION] : [])];
+      });
+      if (migrations.length !== previousMigrationCount || JSON.stringify(updatedLibrary) !== JSON.stringify(library)) {
+        const updated = { ...record, library: updatedLibrary, migrations, updatedAt: new Date().toISOString() };
         const serialized = JSON.stringify(updated);
         if (localStorage.getItem(KEY) !== snapshot) throw new Error('命令库已在其他标签页更新');
         localStorage.setItem(KEY, serialized);
@@ -145,7 +111,7 @@
     if (saved && [1, 2, 3, 4].includes(saved.count) && Array.isArray(saved.panels)) {
       view.count = saved.count;
       view.panels = Array.from({ length: 4 }, (_, i) => {
-        const id = LEGACY_WINDOWS_CATEGORIES.includes(saved.panels[i]) ? 'win-remote-root' : saved.panels[i];
+        const id = M.LEGACY_WINDOWS_CATEGORIES.includes(saved.panels[i]) ? 'win-remote-root' : saved.panels[i];
         return id === 'all' || library.categories.some(c => c.id === id) ? id : 'all';
       });
       view.collapsed = Array.isArray(saved.collapsed) ? saved.collapsed.filter(id => typeof id === 'string') : [];
@@ -168,11 +134,11 @@
     catch { throw new Error('保存失败，浏览器空间可能不足。本次修改未生效，请先导出备份。'); }
     snapshot = serialized; record = nextRecord; library = nextRecord.library;
   }
-  function commit(change, message, remember = true) {
+  function commit(change, message) {
     checkEdit();
     const previous = clone(library), draft = clone(library);
     change(draft); write(draft);
-    if (remember) { history.push(previous); if (history.length > 20) history.shift(); }
+    history.push(previous); if (history.length > 20) history.shift();
     render(); notify(message);
   }
   function run(action) { try { action(); } catch (error) { notify(error.message); } }
@@ -623,7 +589,7 @@
   function openLinkedCategory() {
     let id;
     try { id = decodeURIComponent(location.hash.slice(1)); } catch { return; }
-    if (LEGACY_WINDOWS_CATEGORIES.includes(id)) id = 'win-remote-root';
+    if (M.LEGACY_WINDOWS_CATEGORIES.includes(id)) id = 'win-remote-root';
     if (!library.categories.some(c => c.id === id)) return;
     active = 0; view.panels[0] = id;
     let category = library.categories.find(c => c.id === id);
