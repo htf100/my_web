@@ -10,6 +10,7 @@
   const SSH_ZICP_MIGRATION = 'ssh-zicp-v1';
   const WINDOWS_REMOTE_MIGRATION = 'windows-remote-v1';
   const CODEX_LAUNCH_MIGRATION = 'codex-launch-v1';
+  const TABLET_CONNECT_MIGRATION = 'tablet-connect-v1';
   const COURSE_CS2680_MIGRATION = 'course-cs2680-v1';
   const GPU_RESOURCES_MIGRATION = 'gpu-resources-v1';
   const WINDOWS_QUICK_MIGRATION = 'windows-quick-v1';
@@ -65,6 +66,7 @@
         [SSH_ZICP_MIGRATION, ['server-root', 'connection'], c => c.id === 'connect-ssh-zicp', 'connection'],
         [WINDOWS_REMOTE_MIGRATION, ['server-root', 'win-remote-root'], c => c.id.startsWith('win-remote-')],
         [CODEX_LAUNCH_MIGRATION, ['server-root', 'connection', 'codex-launch'], c => c.id === 'codex-launch-network'],
+        [TABLET_CONNECT_MIGRATION, ['server-root', 'connection', 'tablet-connect'], c => c.category === 'tablet-connect'],
         [COURSE_CS2680_MIGRATION, ['course-root', 'course-cs2680', 'cs2680-task-2'], c => c.id === 'course-cs2680-task2-start'],
         [GPU_RESOURCES_MIGRATION, ['server-root', 'gpu-resources'], c => c.id.startsWith('gpu-resource-')],
         [WINDOWS_QUICK_MIGRATION, ['server-root', 'win-remote-root'], c => c.id.startsWith('win-remote-quick-')],
@@ -128,7 +130,7 @@
       unlocked = false; render();
       throw new Error('另一个标签页已更新命令库。请先导出当前内容，再刷新页面后重试，避免覆盖更新。');
     }
-    const nextRecord = { ...record, version: 2, library: M.validate(nextLibrary), lock, updatedAt: new Date().toISOString(), migrations: record?.migrations || [WINDOWS_REMOTE_MIGRATION, CODEX_LAUNCH_MIGRATION, COURSE_CS2680_MIGRATION, GPU_RESOURCES_MIGRATION, WINDOWS_QUICK_MIGRATION, WINDOWS_COMPACT_MIGRATION, WINDOWS_SERVER_7151_MIGRATION, WINDOWS_SERVER_7151_AUTO_MIGRATION] };
+    const nextRecord = { ...record, version: 2, library: M.validate(nextLibrary), lock, updatedAt: new Date().toISOString(), migrations: record?.migrations || [WINDOWS_REMOTE_MIGRATION, CODEX_LAUNCH_MIGRATION, TABLET_CONNECT_MIGRATION, COURSE_CS2680_MIGRATION, GPU_RESOURCES_MIGRATION, WINDOWS_QUICK_MIGRATION, WINDOWS_COMPACT_MIGRATION, WINDOWS_SERVER_7151_MIGRATION, WINDOWS_SERVER_7151_AUTO_MIGRATION] };
     const serialized = JSON.stringify(nextRecord);
     try { localStorage.setItem(KEY, serialized); }
     catch { throw new Error('保存失败，浏览器空间可能不足。本次修改未生效，请先导出备份。'); }

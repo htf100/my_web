@@ -6,7 +6,7 @@
 
 - **1–4 栏**：在工具栏切换栏数。每栏可独立选择任意分类、包含子分类的上级标题或全部命令。点击栏头可设为“当前栏”，点击左侧分类会更新当前栏。栏头的左箭头可交换栏的位置。
 - **每栏独立滚动**：桌面端并排浏览，不必跟着最长的一栏一起翻页。窄桌面窗口可横向滚动分栏区域；手机上按栏顺序上下排列。
-- **多级标题**：当前 99 条命令和说明已整理为 47 个分类节点。支持最多 6 级标题，左侧可展开/收起；分类下面可以同时放命令和子分类。
+- **多级标题**：当前 102 条命令和说明已整理为 48 个分类节点。支持最多 6 级标题，左侧可展开/收起；分类下面可以同时放命令和子分类。
 - **搜索与筛选**：搜索会匹配名称、代码、备注以及完整分类路径，并与运行环境筛选共同生效。搜索范围为各栏选择的分类。按 `/` 聚焦搜索，`Esc` 清空搜索。
 - **一键复制**：保持命令原始内容和换行。浏览器阻止复制时会尝试兼容方式，最后提供选中内容手动复制。网页不会运行命令。
 
@@ -45,6 +45,29 @@
 “服务器 / 连接与环境 / Codex 启动配置”包含原样命令 `codex --sandbox workspace-write -c sandbox_workspace_write.network_access=true`，用于在工作区可写沙箱中启动 Codex 并允许沙箱向外访问网络。需先安装 Codex CLI，并在项目目录终端执行。参数说明依据 [OpenAI 官方配置参考](https://learn.chatgpt.com/docs/config-file/config-reference)。
 
 可从 <https://htf100.github.io/my_web/#codex-launch> 直接定位并一键复制。已有浏览器命令库会自动补入此分类和命令一次，保留已有编辑和密令；之后删除不会在刷新时恢复。
+
+## 平板连接与 Codex
+
+[服务器 / 连接与环境 / 平板连接与 Codex](https://htf100.github.io/my_web/#tablet-connect) 将平板登录、启动新对话、选择恢复已有对话三条命令放在一起。
+
+平板连接命令按用户原文保存：
+
+```bash
+mosh --server=/usr/bin/mosh-server --ssh="ssh -4" -- ubuntu@43.156.51.71 tmux new-session -A -s htf-tablet
+```
+
+它连接服务器并进入已有的 `htf-tablet` 会话，会话不存在时创建。下次连接继续执行同一条；如果 tmux 中仍运行着 Codex，直接继续输入。按 `Ctrl+B` 后按 `D` 可分离并保留程序运行。
+
+在服务器 tmux 的 Shell 中启动新对话：
+
+```bash
+cd /home/ubuntu/disk/htf &&
+codex --sandbox workspace-write -c sandbox_workspace_write.network_access=true
+```
+
+需要恢复以前的对话时，在保存该对话的服务器、同一登录用户下执行 `codex resume --all`，结合目录和标题选择自己的会话。`--all` 允许显示其他工作目录的对话；启动和恢复命令依据 [OpenAI 官方 CLI 说明](https://learn.chatgpt.com/docs/cli/reference#codex-resume)。
+
+已有浏览器命令库会自动补入此分类与三条命令一次；保留已有编辑与密令，之后删除的条目不会在刷新时恢复。
 
 ## Windows 远程访问
 

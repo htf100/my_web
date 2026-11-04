@@ -22,6 +22,11 @@ window.COMMAND_LIBRARY = {
       "parent": "connection"
     },
     {
+      "id": "tablet-connect",
+      "label": "平板连接与 Codex",
+      "parent": "connection"
+    },
+    {
       "id": "wsl",
       "label": "WSL 系统",
       "parent": "connection"
@@ -284,6 +289,42 @@ window.COMMAND_LIBRARY = {
       "environment": "server",
       "context": "Windows 终端",
       "note": "服务器防火墙需允许对应的 UDP 端口。",
+      "warning": false
+    },
+    {
+      "id": "tablet-connect-mosh",
+      "category": "tablet-connect",
+      "title": "平板 · 连接服务器并进入 tmux",
+      "description": "在平板终端执行，连接 43.156.51.71，并进入或创建 htf-tablet 会话。",
+      "code": "mosh --server=/usr/bin/mosh-server --ssh=\"ssh -4\" -- ubuntu@43.156.51.71 tmux new-session -A -s htf-tablet",
+      "language": "Shell",
+      "environment": "server",
+      "context": "平板 · 已安装 Mosh 的终端",
+      "note": "--server 指定远端 mosh-server 路径；ssh -4 使用 IPv4；tmux -A 在会话存在时连接，否则创建。下次连接继续用这一条；若已显示 Codex 界面，直接继续输入。按 Ctrl+B，再按 D，可离开 tmux 并保留其中运行的程序。",
+      "warning": false
+    },
+    {
+      "id": "tablet-codex-start",
+      "category": "tablet-connect",
+      "title": "Codex · 启动新对话",
+      "description": "连接后在服务器 tmux 中执行，进入 HTF 工作目录并启动 Codex。",
+      "code": "cd /home/ubuntu/disk/htf &&\ncodex --sandbox workspace-write -c sandbox_workspace_write.network_access=true",
+      "language": "Bash",
+      "environment": "server",
+      "context": "服务器 · tmux 内的 Shell",
+      "note": "需要服务器已安装并登录 Codex CLI。工作目录可按项目修改；workspace-write 允许写入工作区，network_access=true 允许沙箱联网。继续原来的对话时，使用下面的恢复命令。",
+      "warning": false
+    },
+    {
+      "id": "tablet-codex-resume",
+      "category": "tablet-connect",
+      "title": "Codex · 选择并恢复已有对话",
+      "description": "在服务器终端列出保存的 Codex 对话，选择自己的会话继续。",
+      "code": "codex resume --all",
+      "language": "Shell",
+      "environment": "server",
+      "context": "服务器 · tmux 内的 Shell",
+      "note": "在保存原对话的服务器、同一登录用户下执行。--all 显示其他工作目录的会话，可结合目录和标题选择自己的对话。若 tmux 中原来的 Codex 仍在运行，重连后直接继续即可。命令说明：https://learn.chatgpt.com/docs/cli/reference#codex-resume",
       "warning": false
     },
     {
